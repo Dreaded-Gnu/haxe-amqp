@@ -1,0 +1,10 @@
+{
+  "editor.renderFinalNewline": "on",
+  "editor.renderWhitespace": "all",
+  "editor.detectIndentation": false,
+  "editor.insertSpaces": true,
+  "editor.rulers": [ 80, 120 ],
+  "editor.fontSize": 12,
+  "haxe.importsSortOrder": "all-alphabetical",
+  "haxe.enableCompilationServer": true
+}

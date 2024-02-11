@@ -1,0 +1,4 @@
+.haxelib
+node_modules
+cpp
+spec/*.json

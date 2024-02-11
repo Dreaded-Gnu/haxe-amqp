@@ -1,0 +1,27 @@
+{
+  "indentation": {
+    "character": "  "
+  },
+  "lineEnds": {
+    "leftCurly": "after",
+    "rightCurly": "after",
+    "objectLiteralCurly": {
+      "leftCurly": "after"
+    }
+  },
+  "sameLine": {
+    "ifBody": "same",
+    "ifElse": "same",
+    "doWhile": "same",
+    "tryBody": "same",
+    "catchBody": "same",
+    "functionBody": "same"
+  },
+  "emptyLines": {
+    "finalNewline": true
+  },
+  "excludes": [
+    "src/amqp/helper/protocol/Constant.hx",
+    "src/amqp/helper/protocol/EncoderDecoderInfo.hx"
+  ]
+}
