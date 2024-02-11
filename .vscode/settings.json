@@ -6,5 +6,8 @@
   "editor.rulers": [ 80, 120 ],
   "editor.fontSize": 12,
   "haxe.importsSortOrder": "all-alphabetical",
-  "haxe.enableCompilationServer": true
+  "haxe.enableCompilationServer": true,
+  "haxe.configurations": [
+    [ "-cp", "src", "-cp", "sample", "-main", "Main", "-lib", "format", "-lib", "hxdispatch", "--run", "Main" ]
+  ]
 }

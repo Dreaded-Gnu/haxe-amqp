@@ -1,7 +1,6 @@
 package amqp;
 
 import haxe.Exception;
-import haxe.Json;
 import sys.net.Host;
 import sys.thread.Thread;
 import hxdispatch.Dispatcher;
@@ -20,7 +19,9 @@ class Connection extends Dispatcher<String> {
   public var config(default, null):Config;
   public var sock(default, null):sys.net.Socket;
   public var output(default, null):BytesOutput;
+  public var closed(default, null):Bool;
 
+  private var thread:Thread;
   private var serverProperties:Dynamic;
   private var channelMax:Int;
   private var frameMax:Int;
@@ -92,10 +93,9 @@ class Connection extends Dispatcher<String> {
    */
   public static function socketReader() {
     var connection:Connection = cast Thread.readMessage(true);
-    while (true) {
+    while (!connection.closed) {
       try {
         var byte:Int = connection.sock.input.readByte();
-        // trace('Reading data: ${byte}');
         connection.output.writeByte(byte);
       } catch (e:Dynamic) {
         if (Std.isOfType(e, haxe.io.Eof) || e == haxe.io.Eof) {
@@ -110,6 +110,12 @@ class Connection extends Dispatcher<String> {
     }
   }
 
+  /**
+   * Helper to negotiate server and desired variable
+   * @param server
+   * @param desired
+   * @return Int
+   */
   private function negotiate(server:Int, desired:Int):Int {
     if (server == 0 || desired == 0) {
       // i.e., whichever places a limit, if either
@@ -136,11 +142,14 @@ class Connection extends Dispatcher<String> {
     // enable blocking and fast send
     this.sock.setBlocking(true);
     this.sock.setFastSend(true);
+    this.closed = false;
 
     // get opening frame content
     var openFrameData:TOpenFrame = openFrames();
 
-    var thread:Thread = Thread.create(socketReader);
+    // create thread
+    this.thread = Thread.create(socketReader);
+    // send message to thread
     thread.sendMessage(this);
 
     // send protocol header
@@ -195,6 +204,28 @@ class Connection extends Dispatcher<String> {
     this.heartbeat = openFrameData.tuneOk.heartbeat;
 
     this.trigger("connected", "Successfully connected!");
+  }
+
+  /**
+   * Method to close connection
+   */
+  public function close():Void {
+    // send close
+    this.sendMethod(0, EncoderDecoderInfo.ConnectionClose, {replyText: "close", replyCode: Constant.REPLY_SUCCESS, methodId: 0, classId: 0,});
+
+    // read data, decode frame and check for connection start was sent
+    var frame:Dynamic = this.readData();
+    if (frame.id != EncoderDecoderInfo.ConnectionCloseOk) {
+      throw new Exception('Expected ${EncoderDecoderInfo.info(EncoderDecoderInfo.ConnectionCloseOk).name}');
+    }
+
+    // set close flag and reset thread
+    this.closed = true;
+    this.thread = null;
+    // finally close socket
+    this.sock.close();
+    // emit closed
+    this.trigger("closed", "closed");
   }
 
   /**

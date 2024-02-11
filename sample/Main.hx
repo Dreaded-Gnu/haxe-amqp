@@ -14,6 +14,10 @@ class Main {
     // connect
     conn.connect();
     trace('Connected, yay');
+    // sleep 10 seconds
+    Sys.sleep(10);
+    // close connection again
+    conn.close();
     while (true) {
     }
   }
