@@ -1,8 +1,9 @@
+package tutorial.hello_world;
 
 import amqp.Connection;
 import amqp.connection.Config;
 
-class Main {
+class Receiver {
   public static function main() {
     // create connection instance
     var cfg:Config = new Config();

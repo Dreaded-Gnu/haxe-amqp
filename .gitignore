@@ -1,4 +1,5 @@
 .haxelib
 node_modules
-cpp
+tutorial/hello_world/sender
+tutorial/hello_world/receiver
 spec/*.json

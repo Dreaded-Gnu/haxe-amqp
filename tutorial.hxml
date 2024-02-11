@@ -1,0 +1,15 @@
+-cp src
+-lib format
+-lib hxdispatch
+# following is only necessary for vscode
+-lib utest
+--each
+
+-cp tutorial/hello_world
+-main tutorial.hello_world.Sender
+-cpp tutorial/hello_world/sender
+--next
+
+-cp tutorial/hello_world
+-main tutorial.hello_world.Receiver
+-cpp tutorial/hello_world/receiver

@@ -14,8 +14,6 @@ import amqp.Codec;
 import amqp.Heartbeat;
 import amqp.Connection;
 
-// test case from mqtt-packet, https://github.com/mqttjs/mqtt-packet/
-
 class Test {
   public static function main() {
     utest.UTest.run([

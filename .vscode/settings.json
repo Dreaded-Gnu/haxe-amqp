@@ -8,6 +8,6 @@
   "haxe.importsSortOrder": "all-alphabetical",
   "haxe.enableCompilationServer": true,
   "haxe.configurations": [
-    [ "-cp", "src", "-cp", "sample", "-main", "Main", "-lib", "format", "-lib", "hxdispatch", "--run", "Main" ]
+    [ "tutorial.hxml" ]
   ]
 }
