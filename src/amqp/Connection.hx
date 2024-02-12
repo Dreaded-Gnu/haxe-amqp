@@ -1,5 +1,7 @@
 package amqp;
 
+import amqp.frame.type.DecodedFrame;
+import haxe.Timer;
 import haxe.Exception;
 import sys.net.Host;
 import sys.thread.Thread;
@@ -20,11 +22,15 @@ class Connection extends Dispatcher<Event> {
   public static inline var EVENT_CONNECTED:Event = "connected";
   public static inline var EVENT_CLOSED:Event = "closed";
 
+  private static inline var ACCEPTOR_TIMEOUT:Int = 1000;
+
   public var config(default, null):Config;
   public var sock(default, null):sys.net.Socket;
   public var output(default, null):BytesOutput;
   public var closed(default, null):Bool;
+  public var heartbeatStatus(default, default):Bool;
 
+  private var receiveTimer:Timer;
   private var thread:Thread;
   private var frame:Frame;
   private var channel:Map<Int, Channel>;
@@ -32,6 +38,7 @@ class Connection extends Dispatcher<Event> {
   private var channelMax:Int;
   private var frameMax:Int;
   private var heartbeat:Int;
+  private var heartbeater:Heartbeat;
 
   /**
    * Constructor
@@ -42,6 +49,8 @@ class Connection extends Dispatcher<Event> {
     this.config = config;
     this.output = new BytesOutput();
     this.frame = new Frame();
+    this.frameMax = Constant.FRAME_MIN_SIZE;
+    this.heartbeatStatus = false;
     // register event callbacks
     this.register(EVENT_CONNECTED);
     this.register(EVENT_CLOSED);
@@ -139,6 +148,43 @@ class Connection extends Dispatcher<Event> {
   }
 
   /**
+   * Receive acceptor polling every second for new data
+   */
+  private function receiveAcceptor():Void {
+    // stop timer
+    this.receiveTimer.stop();
+    // fetch data from output buffer
+    var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
+    // flush out
+    this.output.flush();
+    // handle data
+    if (bytes.length > 0) {
+      // create bytes input accessor with big endian
+      var input:BytesInput = new BytesInput(bytes);
+      input.bigEndian = true;
+      // parse frame
+      var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
+      // handle possible further stuff
+      if (parsedFrame.rest.length > 0) {
+        throw new Exception("There is more in the buffer!!!");
+      } else if (parsedFrame == null) {
+        throw new Exception("Package maybe incomplete!");
+      }
+      // return decoded frame
+      var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
+      // get channel
+      var channel:Channel = this.channel.get(parsedFrame.channel);
+      if (null == channel) {
+        throw new Exception( "Invalid channel received, close connection!" );
+      } else {
+        channel.accept(decodedFrame);
+      }
+    }
+    // set new timer
+    this.receiveTimer = Timer.delay(this.receiveAcceptor, ACCEPTOR_TIMEOUT);
+  }
+
+  /**
    * Connect to amqp with performing handshake
    */
   public function connect():Void {
@@ -216,15 +262,20 @@ class Connection extends Dispatcher<Event> {
     this.frameMax = openFrameData.tuneOk.frameMax;
     this.heartbeat = openFrameData.tuneOk.heartbeat;
 
+    // set receive timer
+    this.receiveTimer = Timer.delay(this.receiveAcceptor, ACCEPTOR_TIMEOUT);
+    this.startHeartbeat();
+
     this.trigger(EVENT_CONNECTED, "Successfully connected!");
   }
 
   /**
    * Method to close connection
+   * @param reason
    */
-  public function close():Void {
+  public function close(reason:String = "close"):Void {
     // send close
-    this.sendMethod(0, EncoderDecoderInfo.ConnectionClose, {replyText: "close", replyCode: Constant.REPLY_SUCCESS, methodId: 0, classId: 0,});
+    this.sendMethod(0, EncoderDecoderInfo.ConnectionClose, {replyText: reason, replyCode: Constant.REPLY_SUCCESS, methodId: 0, classId: 0,});
 
     // read data, decode frame and check for connection start was sent
     var frame:Dynamic = this.readData();
@@ -237,6 +288,8 @@ class Connection extends Dispatcher<Event> {
     this.thread = null;
     // finally close socket
     this.sock.close();
+    // stop timer
+    this.receiveTimer.stop();
     // emit closed
     this.trigger(EVENT_CLOSED, "closed");
   }
@@ -261,7 +314,7 @@ class Connection extends Dispatcher<Event> {
       var input:BytesInput = new BytesInput(bytes);
       input.bigEndian = true;
       // parse frame
-      var parsedFrame = this.frame.parseFrame(input, Constant.FRAME_MIN_SIZE);
+      var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
       // return decoded frame
       return this.frame.decodeFrame(parsedFrame);
     }
@@ -280,5 +333,48 @@ class Connection extends Dispatcher<Event> {
     this.sock.output.writeFullBytes(frame, 0, frame.length);
     // flush socket output
     this.sock.output.flush();
+  }
+
+  /**
+   * Helper to check heartbeat status with reset
+   * @return Bool
+   */
+  private function checkHeartbeat():Bool {
+    var status:Bool = this.heartbeatStatus;
+    this.heartbeatStatus = false;
+    return status;
+  }
+
+  /**
+   * Helper to send heartbeat
+   */
+  private function sendHeartbeat():Void {
+    // get heartbeat buffer
+    var bytes:Bytes = Frame.HEARTBEAT_BUFFER;
+    // just send it
+    this.sock.output.writeFullBytes(bytes, 0, bytes.length);
+    // flush socket output
+    this.sock.output.flush();
+  }
+
+  private function startHeartbeat():Void {
+    // handle no heartbeat
+    if (0 >= this.heartbeat) {
+      return;
+    }
+    // create heartbeat instance
+    this.heartbeater = new Heartbeat(
+      this.heartbeat,
+      this.checkHeartbeat
+    );
+    // attach beat handler
+    this.heartbeater.attach(Heartbeat.EVENT_BEAT, (hb:Heartbeat) -> {
+      trace("Sending heartbeat!");
+      this.sendHeartbeat();
+    });
+    // attach timeout handler
+    this.heartbeater.attach(Heartbeat.EVENT_TIMEOUT, (hb:Heartbeat) -> {
+      throw new Exception('Close down everything without closing handshake!');
+    });
   }
 }

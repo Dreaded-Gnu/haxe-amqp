@@ -1,36 +1,17 @@
 package amqp;
 
-import haxe.Json;
+import amqp.frame.type.DecodedFrame;
+import amqp.frame.type.FrameHeaderType;
+import amqp.frame.type.FrameMethodType;
+import amqp.frame.type.FrameType;
 import haxe.io.Input;
 import amqp.helper.BytesInput;
-import haxe.Int64;
-import haxe.Int32;
 import haxe.io.Encoding;
 import haxe.io.BytesOutput;
 import haxe.Exception;
 import amqp.helper.Bytes;
 import amqp.helper.protocol.Constant;
 import amqp.helper.protocol.EncoderDecoderInfo;
-import amqp.Codec;
-
-typedef FrameType = {
-  var type:Int;
-  var channel:Int;
-  var size:Int32;
-  var rest:Bytes;
-}
-
-typedef FrameHeaderType = {
-  var klass:Int;
-  var _weight:Int;
-  var size:Int64;
-  var flagsAndfields:Bytes;
-}
-
-typedef FrameMethodType = {
-  var id:Int32;
-  var args:Bytes;
-}
 
 class Frame {
   public static var PROTOCOL_HEADER(get, never):String;
@@ -55,7 +36,10 @@ class Frame {
    * @return Dynamic
    */
   private static function get_HEARTBEAT():Dynamic {
-    return {channel: 0,};
+    return {
+      type: Constant.FRAME_HEARTBEAT,
+      channel: 0,
+    };
   }
 
   /**
@@ -65,10 +49,10 @@ class Frame {
   private static function get_HEARTBEAT_BUFFER():Bytes {
     var bo:BytesOutput = new BytesOutput();
     bo.bigEndian = true;
-    bo.writeInt32(Constant.FRAME_HEARTBEAT);
-    bo.writeInt32(0);
-    bo.writeInt16(0);
-    bo.writeInt32(Constant.FRAME_END);
+    bo.writeByte(Constant.FRAME_HEARTBEAT);
+    bo.writeInt16(0); // channel
+    bo.writeInt32(0); // size
+    bo.writeByte(Constant.FRAME_END);
     var bytes:haxe.io.Bytes = bo.getBytes();
     return new Bytes(bytes.length, bytes.getData());
   }
@@ -97,7 +81,7 @@ class Frame {
    * @param max
    * @return Dynamic
    */
-  public function parseFrame(bin:Input, max:Int):Dynamic {
+  public function parseFrame(bin:Input, max:Int):DecodedFrame {
     var type:Int = bin.readByte();
     var channel:Int = bin.readInt16();
     var size:Int = bin.readInt32();
@@ -109,6 +93,7 @@ class Frame {
       size: size,
       rest: buf,
     };
+    trace(fh.type, fh.channel, fh.size, buf.length);
     var size:Int = fh.size;
     var rest:Bytes = fh.rest;
     if (size > max) {
@@ -140,7 +125,7 @@ class Frame {
    * @param frame
    * @return Dynamic
    */
-  public function decodeFrame(frame:Dynamic):Dynamic {
+  public function decodeFrame(frame:DecodedFrame):Dynamic {
     var payload:Bytes = frame.payload;
     var type:Int = frame.type;
     var bytes:BytesInput = new BytesInput(payload);
