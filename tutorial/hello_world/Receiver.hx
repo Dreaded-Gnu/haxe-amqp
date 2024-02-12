@@ -12,6 +12,9 @@ class Receiver {
     conn.attach("connected", function(event:String) {
       trace(event);
     });
+    conn.attach(Connection.EVENT_CLOSED, function(event:String) {
+      trace(event);
+    });
     // connect
     conn.connect();
     trace('Connected, yay');
@@ -19,7 +22,7 @@ class Receiver {
     Sys.sleep(10);
     // close connection again
     conn.close();
-    while (true) {
-    }
+    trace('Disconnected');
+    while (true) {}
   }
 }

@@ -33,32 +33,71 @@ typedef FrameMethodType = {
 }
 
 class Frame {
-  public static var PROTOCOL_HEADER:String = "AMQP" + String.fromCharCode(0) + String.fromCharCode(0) + String.fromCharCode(9) + String.fromCharCode(1);
-  public static var HEARTBEAT:Dynamic = {channel: 0,};
+  public static var PROTOCOL_HEADER(get, never):String;
+  public static var HEARTBEAT(get, never):Dynamic;
   public static var HEARTBEAT_BUFFER(get, never):Bytes;
 
+  /**
+   * Constructor
+   */
+  public function new() {}
+
+  /**
+   * Getter for protocol header
+   * @return String
+   */
+  private static function get_PROTOCOL_HEADER():String {
+    return "AMQP" + String.fromCharCode(0) + String.fromCharCode(0) + String.fromCharCode(9) + String.fromCharCode(1);
+  }
+
+  /**
+   * Getter for heartbeat
+   * @return Dynamic
+   */
+  private static function get_HEARTBEAT():Dynamic {
+    return {channel: 0,};
+  }
+
+  /**
+   * Getter for heartbeat buffer
+   * @return Bytes
+   */
   private static function get_HEARTBEAT_BUFFER():Bytes {
-    var bytes:BytesOutput = new BytesOutput();
-    bytes.bigEndian = true;
-    bytes.writeInt32(Constant.FRAME_HEARTBEAT);
-    bytes.writeInt32(0);
-    bytes.writeInt16(0);
-    bytes.writeInt32(Constant.FRAME_END);
-    return new Bytes(bytes.getBytes().length, bytes.getBytes().getData());
+    var bo:BytesOutput = new BytesOutput();
+    bo.bigEndian = true;
+    bo.writeInt32(Constant.FRAME_HEARTBEAT);
+    bo.writeInt32(0);
+    bo.writeInt16(0);
+    bo.writeInt32(Constant.FRAME_END);
+    var bytes:haxe.io.Bytes = bo.getBytes();
+    return new Bytes(bytes.length, bytes.getData());
   }
 
-  public static function makeBodyFrame(channel:Int, payload:Bytes):Bytes {
-    var bytes:BytesOutput = new BytesOutput();
-    bytes.bigEndian = true;
-    bytes.writeInt32(Constant.FRAME_BODY);
-    bytes.writeInt16(channel);
-    bytes.writeInt32(payload.length);
-    bytes.writeString(payload.toString(), Encoding.UTF8);
-    bytes.writeInt32(Constant.FRAME_END);
-    return new Bytes(bytes.getBytes().length, bytes.getBytes().getData());
+  /**
+   * Helper to make body frame
+   * @param channel
+   * @param payload
+   * @return Bytes
+   */
+  public function makeBodyFrame(channel:Int, payload:Bytes):Bytes {
+    var bo:BytesOutput = new BytesOutput();
+    bo.bigEndian = true;
+    bo.writeInt32(Constant.FRAME_BODY);
+    bo.writeInt16(channel);
+    bo.writeInt32(payload.length);
+    bo.writeString(payload.toString(), Encoding.UTF8);
+    bo.writeInt32(Constant.FRAME_END);
+    var bytes:haxe.io.Bytes = bo.getBytes();
+    return new Bytes(bytes.length, bytes.getData());
   }
 
-  public static function parseFrame(bin:Input, max:Int):Dynamic {
+  /**
+   * Helper to parse a frame
+   * @param bin
+   * @param max
+   * @return Dynamic
+   */
+  public function parseFrame(bin:Input, max:Int):Dynamic {
     var type:Int = bin.readByte();
     var channel:Int = bin.readInt16();
     var size:Int = bin.readInt32();
@@ -78,18 +117,30 @@ class Frame {
       if (rest.get(size) != Constant.FRAME_END) {
         throw new Exception('Invalid frame');
       }
+      // read rest bytes if there is more than frame end
+      var restByte:Bytes = null;
+      if (rest.length + 1 > size) {
+        restByte = rest.sub(size + 1, rest.length - size - 1);
+      } else {
+        restByte = Bytes.ofString("");
+      }
       return {
         type: fh.type,
         channel: fh.channel,
         size: size,
         payload: rest.sub(0, size),
-        rest: rest.sub(size, rest.length - size),
+        rest: restByte,
       };
     }
     return null;
   }
 
-  public static function decodeFrame(frame:Dynamic):Dynamic {
+  /**
+   * Helper to decode a frame
+   * @param frame
+   * @return Dynamic
+   */
+  public function decodeFrame(frame:Dynamic):Dynamic {
     var payload:Bytes = frame.payload;
     var type:Int = frame.type;
     var bytes:BytesInput = new BytesInput(payload);

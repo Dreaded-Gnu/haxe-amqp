@@ -4,6 +4,7 @@ import haxe.Exception;
 import sys.net.Host;
 import sys.thread.Thread;
 import hxdispatch.Dispatcher;
+import hxdispatch.Event;
 import amqp.connection.Config;
 import amqp.connection.type.TOpenFrame;
 import amqp.helper.Bytes;
@@ -15,13 +16,18 @@ import amqp.helper.protocol.Constant;
 /**
  * Connection class
  */
-class Connection extends Dispatcher<String> {
+class Connection extends Dispatcher<Event> {
+  public static inline var EVENT_CONNECTED:Event = "connected";
+  public static inline var EVENT_CLOSED:Event = "closed";
+
   public var config(default, null):Config;
   public var sock(default, null):sys.net.Socket;
   public var output(default, null):BytesOutput;
   public var closed(default, null):Bool;
 
   private var thread:Thread;
+  private var frame:Frame;
+  private var channel:Map<Int, Channel>;
   private var serverProperties:Dynamic;
   private var channelMax:Int;
   private var frameMax:Int;
@@ -35,7 +41,14 @@ class Connection extends Dispatcher<String> {
     super();
     this.config = config;
     this.output = new BytesOutput();
-    this.register("connected");
+    this.frame = new Frame();
+    // register event callbacks
+    this.register(EVENT_CONNECTED);
+    this.register(EVENT_CLOSED);
+    // setup map
+    this.channel = new Map<Int, Channel>();
+    // insert instance for control channel 0
+    this.channel.set(0, new Channel0(this));
   }
 
   /**
@@ -203,7 +216,7 @@ class Connection extends Dispatcher<String> {
     this.frameMax = openFrameData.tuneOk.frameMax;
     this.heartbeat = openFrameData.tuneOk.heartbeat;
 
-    this.trigger("connected", "Successfully connected!");
+    this.trigger(EVENT_CONNECTED, "Successfully connected!");
   }
 
   /**
@@ -225,7 +238,7 @@ class Connection extends Dispatcher<String> {
     // finally close socket
     this.sock.close();
     // emit closed
-    this.trigger("closed", "closed");
+    this.trigger(EVENT_CLOSED, "closed");
   }
 
   /**
@@ -248,9 +261,9 @@ class Connection extends Dispatcher<String> {
       var input:BytesInput = new BytesInput(bytes);
       input.bigEndian = true;
       // parse frame
-      var parsedFrame = Frame.parseFrame(input, Constant.FRAME_MIN_SIZE);
+      var parsedFrame = this.frame.parseFrame(input, Constant.FRAME_MIN_SIZE);
       // return decoded frame
-      return Frame.decodeFrame(parsedFrame);
+      return this.frame.decodeFrame(parsedFrame);
     }
   }
 
