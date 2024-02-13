@@ -36,12 +36,13 @@ class Connection extends Dispatcher<Event> {
   private var receiveTimer:Timer;
   private var thread:Thread;
   private var frame:Frame;
-  private var channel:Map<Int, Channel>;
+  private var channelMap:Map<Int, Channel>;
   private var serverProperties:Dynamic;
   private var channelMax:Int;
   private var frameMax:Int;
   private var heartbeat:Int;
   private var heartbeater:Heartbeat;
+  private var nextChannelId:Int;
 
   /**
    * Constructor
@@ -115,7 +116,7 @@ class Connection extends Dispatcher<Event> {
   /**
    * Static socket reader for extra thread
    */
-  public static function socketReader() {
+  private static function socketReader() {
     var connection:Connection = cast Thread.readMessage(true);
     while (!connection.closed) {
       try {
@@ -135,24 +136,93 @@ class Connection extends Dispatcher<Event> {
   }
 
   /**
-   * Helper to negotiate server and desired variable
-   * @param server
-   * @param desired
-   * @return Int
+   * Read data provided by thread
+   * @param output
+   * @return Dynamic
    */
-  private function negotiate(server:Int, desired:Int):Int {
-    if (server == 0 || desired == 0) {
-      // i.e., whichever places a limit, if either
-      return Std.int(Math.max(server, desired));
-    } else {
-      return Std.int(Math.min(server, desired));
+   private function readData():Dynamic {
+    while (true) {
+      // get bytes from output buffer filled by thread
+      var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
+      // flush out
+      this.output.flush();
+      // handle no data
+      if (bytes.length == 0) {
+        Sys.sleep(1);
+        continue;
+      }
+      // create bytes input accessor with big endian
+      var input:BytesInput = new BytesInput(bytes);
+      input.bigEndian = true;
+      // parse frame
+      var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
+      // return decoded frame
+      return this.frame.decodeFrame(parsedFrame);
+    }
+  }
+
+  /**
+   * Helper to check heartbeat status with reset
+   * @return Bool
+   */
+  private function checkHeartbeat():Bool {
+    var status:Bool = this.heartbeatStatus;
+    this.heartbeatStatus = false;
+    return status;
+  }
+
+  /**
+   * Helper to send heartbeat
+   */
+  private function sendHeartbeat():Void {
+    // get heartbeat buffer
+    var bytes:Bytes = Frame.HEARTBEAT_BUFFER;
+    // just send it
+    this.sock.output.writeFullBytes(bytes, 0, bytes.length);
+    // flush socket output
+    this.sock.output.flush();
+  }
+
+  /**
+   * Start the heartbeat
+   */
+  private function startHeartbeat():Void {
+    // handle no heartbeat
+    if (0 >= this.heartbeat) {
+      return;
+    }
+    // create heartbeat instance
+    this.heartbeater = new Heartbeat(this.heartbeat, this.checkHeartbeat);
+    // attach beat handler
+    this.heartbeater.attach(Heartbeat.EVENT_BEAT, (hb:Heartbeat) -> {
+      if (this.closed) {
+        return;
+      }
+      this.sendHeartbeat();
+    });
+    // attach timeout handler
+    this.heartbeater.attach(Heartbeat.EVENT_TIMEOUT, (hb:Heartbeat) -> {
+      if (this.closed) {
+        return;
+      }
+      this.shutdown("heartbeat timeout");
+    });
+  }
+
+  /**
+   * Stop heartbeat
+   */
+  private function stopHeartbeat():Void {
+    // clear heartbeat
+    if (this.heartbeater != null) {
+      this.heartbeater.clear();
     }
   }
 
   /**
    * Receive acceptor polling every second for new data
    */
-  private function receiveAcceptor():Void {
+   private function receiveAcceptor():Void {
     // fetch data from output buffer
     var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
     // flush out
@@ -173,12 +243,27 @@ class Connection extends Dispatcher<Event> {
       // return decoded frame
       var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
       // get channel
-      var channel:Channel = this.channel.get(parsedFrame.channel);
+      var channel:Channel = this.channelMap.get(parsedFrame.channel);
       if (null == channel) {
         closeWithError("Invalid channel received!", Constant.CHANNEL_ERROR);
       } else {
         channel.accept(decodedFrame);
       }
+    }
+  }
+
+  /**
+   * Helper to negotiate server and desired variable
+   * @param server
+   * @param desired
+   * @return Int
+   */
+  private function negotiate(server:Int, desired:Int):Int {
+    if (server == 0 || desired == 0) {
+      // i.e., whichever places a limit, if either
+      return Std.int(Math.max(server, desired));
+    } else {
+      return Std.int(Math.min(server, desired));
     }
   }
 
@@ -261,9 +346,11 @@ class Connection extends Dispatcher<Event> {
     this.heartbeat = openFrameData.tuneOk.heartbeat;
 
     // setup map
-    this.channel = new Map<Int, Channel>();
+    this.channelMap = new Map<Int, Channel>();
     // insert instance for control channel 0
-    this.channel.set(0, new Channel0(this));
+    this.channelMap.set(0, new Channel0(this));
+    // set next channel id
+    this.nextChannelId = 1;
 
     // set receive timer
     this.receiveTimer = new Timer(ACCEPTOR_TIMEOUT);
@@ -288,6 +375,22 @@ class Connection extends Dispatcher<Event> {
   }
 
   /**
+   * Function generates a new channel
+   * @return Channel
+   */
+  public function channel():Channel {
+    // get next id
+    var chlId:Int = this.nextChannelId++;
+    // instanciate new channel
+    var ch:Channel = new Channel(this);
+    // push back to channel map
+    this.channelMap.set(chlId, ch);
+    // kickstart channel open and return created channel
+    ch.open();
+    return ch;
+  }
+
+  /**
    * Close down with error
    * @param reason
    * @param code
@@ -295,32 +398,6 @@ class Connection extends Dispatcher<Event> {
   public function closeWithError(reason:String, code:Int):Void {
     this.trigger(EVENT_ERROR, reason);
     this.close(reason, code);
-  }
-
-  /**
-   * Read data provided by thread
-   * @param output
-   * @return Dynamic
-   */
-  private function readData():Dynamic {
-    while (true) {
-      // get bytes from output buffer filled by thread
-      var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
-      // flush out
-      this.output.flush();
-      // handle no data
-      if (bytes.length == 0) {
-        Sys.sleep(1);
-        continue;
-      }
-      // create bytes input accessor with big endian
-      var input:BytesInput = new BytesInput(bytes);
-      input.bigEndian = true;
-      // parse frame
-      var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
-      // return decoded frame
-      return this.frame.decodeFrame(parsedFrame);
-    }
   }
 
   /**
@@ -339,75 +416,17 @@ class Connection extends Dispatcher<Event> {
   }
 
   /**
-   * Helper to check heartbeat status with reset
-   * @return Bool
-   */
-  private function checkHeartbeat():Bool {
-    var status:Bool = this.heartbeatStatus;
-    this.heartbeatStatus = false;
-    return status;
-  }
-
-  /**
-   * Helper to send heartbeat
-   */
-  private function sendHeartbeat():Void {
-    // get heartbeat buffer
-    var bytes:Bytes = Frame.HEARTBEAT_BUFFER;
-    // just send it
-    this.sock.output.writeFullBytes(bytes, 0, bytes.length);
-    // flush socket output
-    this.sock.output.flush();
-  }
-
-  /**
-   * Start the heartbeat
-   */
-  private function startHeartbeat():Void {
-    // handle no heartbeat
-    if (0 >= this.heartbeat) {
-      return;
-    }
-    // create heartbeat instance
-    this.heartbeater = new Heartbeat(this.heartbeat, this.checkHeartbeat);
-    // attach beat handler
-    this.heartbeater.attach(Heartbeat.EVENT_BEAT, (hb:Heartbeat) -> {
-      if (this.closed) {
-        return;
-      }
-      this.sendHeartbeat();
-    });
-    // attach timeout handler
-    this.heartbeater.attach(Heartbeat.EVENT_TIMEOUT, (hb:Heartbeat) -> {
-      if (this.closed) {
-        return;
-      }
-      this.shutdown("heartbeat timeout");
-    });
-  }
-
-  /**
-   * Stop heartbeat
-   */
-  private function stopHeartbeat():Void {
-    // clear heartbeat
-    if (this.heartbeater != null) {
-      this.heartbeater.clear();
-    }
-  }
-
-  /**
    * Shutdown everything
    * @param reason
    */
   public function shutdown(reason:String = "shutdown"):Void {
     trace("shutdown everything!");
     // shutdown all channels
-    for (i in this.channel) {
+    for (i in this.channelMap) {
       i.shutdown();
     }
     // overwrite channels
-    this.channel = new Map<Int, Channel>();
+    this.channelMap = new Map<Int, Channel>();
     // stop heartbeater
     this.stopHeartbeat();
     // clear acceptor

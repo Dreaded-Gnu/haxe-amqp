@@ -34,6 +34,11 @@ class Channel0 extends Channel {
   }
 
   /**
+   * Override of open function
+   */
+  override public function open() {}
+
+  /**
    * Shutdown method
    */
   override public function shutdown():Void {}

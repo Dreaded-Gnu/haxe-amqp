@@ -93,7 +93,6 @@ class Frame {
       size: size,
       rest: buf,
     };
-    trace(fh.type, fh.channel, fh.size, buf.length);
     var size:Int = fh.size;
     var rest:Bytes = fh.rest;
     if (size > max) {

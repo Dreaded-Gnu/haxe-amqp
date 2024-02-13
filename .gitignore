@@ -3,3 +3,5 @@ node_modules
 tutorial/hello_world/sender
 tutorial/hello_world/receiver
 spec/*.json
+pages
+bin
