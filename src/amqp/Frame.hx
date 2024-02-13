@@ -66,11 +66,11 @@ class Frame {
   public function makeBodyFrame(channel:Int, payload:Bytes):Bytes {
     var bo:BytesOutput = new BytesOutput();
     bo.bigEndian = true;
-    bo.writeInt32(Constant.FRAME_BODY);
+    bo.writeByte(Constant.FRAME_BODY);
     bo.writeInt16(channel);
     bo.writeInt32(payload.length);
-    bo.writeString(payload.toString(), Encoding.UTF8);
-    bo.writeInt32(Constant.FRAME_END);
+    bo.writeBytes(payload, 0, payload.length);
+    bo.writeByte(Constant.FRAME_END);
     var bytes:haxe.io.Bytes = bo.getBytes();
     return new Bytes(bytes.length, bytes.getData());
   }

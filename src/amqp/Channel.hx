@@ -25,6 +25,10 @@ class Channel extends Dispatcher<Dynamic> {
    * Basic accept method
    * @param frame
    */
-  public function accept(frame:Dynamic):Void {
-  }
+  public function accept(frame:Dynamic):Void {}
+
+  /**
+   * Shutdown method
+   */
+  public function shutdown():Void {}
 }

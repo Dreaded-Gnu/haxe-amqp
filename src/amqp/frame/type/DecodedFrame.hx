@@ -7,6 +7,6 @@ typedef DecodedFrame = {
   var type:Int;
   var channel:Int;
   var size:Int32;
-  var payload: Bytes;
-  var rest: Bytes;
+  var payload:Bytes;
+  var rest:Bytes;
 }

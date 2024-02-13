@@ -27,38 +27,38 @@ class Heartbeat extends Dispatcher<Heartbeat> {
     this.checkHeartbeat = checkHeartbeat;
     this.missedBeats = 0;
     // set timer
-    this.sendTimer = Timer.delay(this.send, Std.int(this.interval / 2));
-    this.checkTimer = Timer.delay(this.receive, this.interval);
+    this.sendTimer = new Timer(Std.int(this.interval / 2));
+    this.sendTimer.run = this.send;
+    this.checkTimer = new Timer(this.interval);
+    this.checkTimer.run = this.receive;
   }
 
   /**
    * Clear timer
    */
   public function clear():Void {
+    // stop timer
     this.sendTimer.stop();
     this.checkTimer.stop();
+    // unregister events
+    this.unregister(EVENT_BEAT);
+    this.unregister(EVENT_TIMEOUT);
   }
 
   /**
    * Send callback
    */
   private function send():Void {
-    // stop timer
-    this.sendTimer.stop();
     // emit beat event
     this.trigger(EVENT_BEAT, this);
-    // restart timer
-    this.sendTimer = Timer.delay(this.send, Std.int(this.interval / 2));
   }
 
   /**
    * Receive check callback
    */
   private function receive():Void {
-    // stop timer
-    this.checkTimer.stop();
     // check for timeout
-    if ( ! this.checkHeartbeat()) {
+    if (!this.checkHeartbeat()) {
       this.missedBeats++;
     } else {
       this.missedBeats = 0;

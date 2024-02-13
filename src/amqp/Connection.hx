@@ -21,6 +21,9 @@ import amqp.helper.protocol.Constant;
 class Connection extends Dispatcher<Event> {
   public static inline var EVENT_CONNECTED:Event = "connected";
   public static inline var EVENT_CLOSED:Event = "closed";
+  public static inline var EVENT_ERROR:Event = "error";
+  public static inline var EVENT_BLOCKED:Event = "blocked";
+  public static inline var EVENT_UNBLOCKED:Event = "unblocked";
 
   private static inline var ACCEPTOR_TIMEOUT:Int = 1000;
 
@@ -54,10 +57,9 @@ class Connection extends Dispatcher<Event> {
     // register event callbacks
     this.register(EVENT_CONNECTED);
     this.register(EVENT_CLOSED);
-    // setup map
-    this.channel = new Map<Int, Channel>();
-    // insert instance for control channel 0
-    this.channel.set(0, new Channel0(this));
+    this.register(EVENT_ERROR);
+    this.register(EVENT_BLOCKED);
+    this.register(EVENT_UNBLOCKED);
   }
 
   /**
@@ -151,8 +153,6 @@ class Connection extends Dispatcher<Event> {
    * Receive acceptor polling every second for new data
    */
   private function receiveAcceptor():Void {
-    // stop timer
-    this.receiveTimer.stop();
     // fetch data from output buffer
     var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
     // flush out
@@ -175,13 +175,11 @@ class Connection extends Dispatcher<Event> {
       // get channel
       var channel:Channel = this.channel.get(parsedFrame.channel);
       if (null == channel) {
-        throw new Exception( "Invalid channel received, close connection!" );
+        closeWithError("Invalid channel received!", Constant.CHANNEL_ERROR);
       } else {
         channel.accept(decodedFrame);
       }
     }
-    // set new timer
-    this.receiveTimer = Timer.delay(this.receiveAcceptor, ACCEPTOR_TIMEOUT);
   }
 
   /**
@@ -262,8 +260,14 @@ class Connection extends Dispatcher<Event> {
     this.frameMax = openFrameData.tuneOk.frameMax;
     this.heartbeat = openFrameData.tuneOk.heartbeat;
 
+    // setup map
+    this.channel = new Map<Int, Channel>();
+    // insert instance for control channel 0
+    this.channel.set(0, new Channel0(this));
+
     // set receive timer
-    this.receiveTimer = Timer.delay(this.receiveAcceptor, ACCEPTOR_TIMEOUT);
+    this.receiveTimer = new Timer(ACCEPTOR_TIMEOUT);
+    this.receiveTimer.run = this.receiveAcceptor;
     this.startHeartbeat();
 
     this.trigger(EVENT_CONNECTED, "Successfully connected!");
@@ -273,25 +277,24 @@ class Connection extends Dispatcher<Event> {
    * Method to close connection
    * @param reason
    */
-  public function close(reason:String = "close"):Void {
+  public function close(reason:String = "close", code:Int = Constant.REPLY_SUCCESS):Void {
     // send close
-    this.sendMethod(0, EncoderDecoderInfo.ConnectionClose, {replyText: reason, replyCode: Constant.REPLY_SUCCESS, methodId: 0, classId: 0,});
+    this.sendMethod(0, EncoderDecoderInfo.ConnectionClose, {
+      replyText: reason,
+      replyCode: code,
+      methodId: 0,
+      classId: 0,
+    });
+  }
 
-    // read data, decode frame and check for connection start was sent
-    var frame:Dynamic = this.readData();
-    if (frame.id != EncoderDecoderInfo.ConnectionCloseOk) {
-      throw new Exception('Expected ${EncoderDecoderInfo.info(EncoderDecoderInfo.ConnectionCloseOk).name}');
-    }
-
-    // set close flag and reset thread
-    this.closed = true;
-    this.thread = null;
-    // finally close socket
-    this.sock.close();
-    // stop timer
-    this.receiveTimer.stop();
-    // emit closed
-    this.trigger(EVENT_CLOSED, "closed");
+  /**
+   * Close down with error
+   * @param reason
+   * @param code
+   */
+  public function closeWithError(reason:String, code:Int):Void {
+    this.trigger(EVENT_ERROR, reason);
+    this.close(reason, code);
   }
 
   /**
@@ -326,7 +329,7 @@ class Connection extends Dispatcher<Event> {
    * @param method
    * @param fields
    */
-  private function sendMethod(channel:Int, method:Int, fields:Dynamic):Void {
+  public function sendMethod(channel:Int, method:Int, fields:Dynamic):Void {
     // encode method
     var frame:Bytes = EncoderDecoderInfo.encodeMethod(method, channel, fields);
     // write to network
@@ -357,24 +360,64 @@ class Connection extends Dispatcher<Event> {
     this.sock.output.flush();
   }
 
+  /**
+   * Start the heartbeat
+   */
   private function startHeartbeat():Void {
     // handle no heartbeat
     if (0 >= this.heartbeat) {
       return;
     }
     // create heartbeat instance
-    this.heartbeater = new Heartbeat(
-      this.heartbeat,
-      this.checkHeartbeat
-    );
+    this.heartbeater = new Heartbeat(this.heartbeat, this.checkHeartbeat);
     // attach beat handler
     this.heartbeater.attach(Heartbeat.EVENT_BEAT, (hb:Heartbeat) -> {
-      trace("Sending heartbeat!");
+      if (this.closed) {
+        return;
+      }
       this.sendHeartbeat();
     });
     // attach timeout handler
     this.heartbeater.attach(Heartbeat.EVENT_TIMEOUT, (hb:Heartbeat) -> {
-      throw new Exception('Close down everything without closing handshake!');
+      if (this.closed) {
+        return;
+      }
+      this.shutdown("heartbeat timeout");
     });
+  }
+
+  /**
+   * Stop heartbeat
+   */
+  private function stopHeartbeat():Void {
+    // clear heartbeat
+    if (this.heartbeater != null) {
+      this.heartbeater.clear();
+    }
+  }
+
+  /**
+   * Shutdown everything
+   * @param reason
+   */
+  public function shutdown(reason:String = "shutdown"):Void {
+    trace("shutdown everything!");
+    // shutdown all channels
+    for (i in this.channel) {
+      i.shutdown();
+    }
+    // overwrite channels
+    this.channel = new Map<Int, Channel>();
+    // stop heartbeater
+    this.stopHeartbeat();
+    // clear acceptor
+    this.receiveTimer.stop();
+    // set close flag and reset thread
+    this.closed = true;
+    this.thread = null;
+    // finally close socket
+    this.sock.close();
+    // emit closed
+    this.trigger(EVENT_CLOSED, reason);
   }
 }
