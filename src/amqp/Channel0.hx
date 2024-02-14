@@ -1,5 +1,7 @@
 package amqp;
 
+import haxe.Exception;
+import amqp.channel.type.ChannelState;
 import amqp.helper.protocol.Constant;
 import amqp.helper.protocol.EncoderDecoderInfo;
 import amqp.Channel;
@@ -13,6 +15,25 @@ class Channel0 extends Channel {
    * @param frame
    */
   override public function accept(frame:Dynamic):Void {
+    try {
+      var expected:Int = this.expectedFrame.length > 0 ? this.expectedFrame.shift() : 0;
+      var callback:(field:Dynamic)->Void = this.expectedCallback.shift();
+      // validate frame against expected
+      this.validateExpectedFrame(expected, frame);
+      // run expected callback if set
+      if (callback != null)
+      {
+        // execute callback
+        callback(frame);
+        // skip rest
+        return;
+      }
+    } catch ( e:Exception ) {
+      // when exception occurs we got a mismatch
+      this.connection.closeWithError(e.message, Constant.UNEXPECTED_FRAME);
+      return;
+    }
+
     if (frame.type == Constant.FRAME_HEARTBEAT) {
       // set heartbeat status flag
       this.connection.heartbeatStatus = true;
@@ -29,7 +50,7 @@ class Channel0 extends Channel {
     } else if (frame.id == EncoderDecoderInfo.ConnectionUnblocked) {
       this.connection.trigger(Connection.EVENT_UNBLOCKED, "unblocked");
     } else {
-      this.connection.closeWithError("Unexpected frame on channel 0!", Constant.UNEXPECTED_FRAME);
+      this.connection.closeWithError('Unexpected frame on channel 0, received ${EncoderDecoderInfo.info(frame.id).name}!', Constant.UNEXPECTED_FRAME);
     }
   }
 

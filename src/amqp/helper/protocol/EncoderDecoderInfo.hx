@@ -239,7 +239,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -287,7 +287,7 @@ class EncoderDecoderInfo {
     val = fields.requeue;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"requeue\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -414,7 +414,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -540,7 +540,7 @@ class EncoderDecoderInfo {
     val = fields.mandatory;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"mandatory\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -549,7 +549,7 @@ class EncoderDecoderInfo {
     val = fields.immediate;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"immediate\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -666,7 +666,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -831,7 +831,7 @@ class EncoderDecoderInfo {
     val = fields.active;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"active\"");
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"active\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1173,7 +1173,7 @@ class EncoderDecoderInfo {
     val = fields.requeue;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"requeue\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1300,7 +1300,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1447,7 +1447,7 @@ class EncoderDecoderInfo {
     val = fields.ifUnused;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"ifUnused\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1456,7 +1456,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1540,7 +1540,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1588,7 +1588,7 @@ class EncoderDecoderInfo {
     val = fields.active;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"active\"");
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"active\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1654,7 +1654,7 @@ class EncoderDecoderInfo {
     val = fields.global;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"global\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1730,7 +1730,7 @@ class EncoderDecoderInfo {
     val = fields.ifUnused;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"ifUnused\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1739,7 +1739,7 @@ class EncoderDecoderInfo {
     val = fields.ifEmpty;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"ifEmpty\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1748,7 +1748,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -1900,7 +1900,7 @@ class EncoderDecoderInfo {
     val = fields.requeue;
     if (val == null) {
       val = true;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"requeue\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2154,7 +2154,7 @@ class EncoderDecoderInfo {
     val = fields.redelivered;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"redelivered\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2263,7 +2263,7 @@ class EncoderDecoderInfo {
     val = fields.multiple;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"multiple\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2385,7 +2385,7 @@ class EncoderDecoderInfo {
     val = fields.exclusive;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"exclusive\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2394,7 +2394,7 @@ class EncoderDecoderInfo {
     val = fields.passive;
     if (val == null) {
       val = true;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"passive\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2403,7 +2403,7 @@ class EncoderDecoderInfo {
     val = fields.active;
     if (val == null) {
       val = true;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"active\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2412,7 +2412,7 @@ class EncoderDecoderInfo {
     val = fields.write;
     if (val == null) {
       val = true;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"write\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2421,7 +2421,7 @@ class EncoderDecoderInfo {
     val = fields.read;
     if (val == null) {
       val = true;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"read\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2522,7 +2522,7 @@ class EncoderDecoderInfo {
     val = fields.passive;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"passive\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2531,7 +2531,7 @@ class EncoderDecoderInfo {
     val = fields.durable;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"durable\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2540,7 +2540,7 @@ class EncoderDecoderInfo {
     val = fields.exclusive;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"exclusive\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2549,7 +2549,7 @@ class EncoderDecoderInfo {
     val = fields.autoDelete;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"autoDelete\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2558,7 +2558,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2818,7 +2818,7 @@ class EncoderDecoderInfo {
     val = fields.noLocal;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"noLocal\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2827,7 +2827,7 @@ class EncoderDecoderInfo {
     val = fields.noAck;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"noAck\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2836,7 +2836,7 @@ class EncoderDecoderInfo {
     val = fields.exclusive;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"exclusive\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2845,7 +2845,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2934,7 +2934,7 @@ class EncoderDecoderInfo {
     val = fields.multiple;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"multiple\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -2943,7 +2943,7 @@ class EncoderDecoderInfo {
     val = fields.requeue;
     if (val == null) {
       val = true;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"requeue\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -3375,7 +3375,7 @@ class EncoderDecoderInfo {
     val = fields.insist;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"insist\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -3447,7 +3447,7 @@ class EncoderDecoderInfo {
     val = fields.noAck;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"noAck\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -3905,7 +3905,7 @@ class EncoderDecoderInfo {
     val = fields.passive;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"passive\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -3914,7 +3914,7 @@ class EncoderDecoderInfo {
     val = fields.durable;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"durable\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -3923,7 +3923,7 @@ class EncoderDecoderInfo {
     val = fields.autoDelete;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"autoDelete\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -3932,7 +3932,7 @@ class EncoderDecoderInfo {
     val = fields.internal;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"internal\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -3941,7 +3941,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -4024,7 +4024,7 @@ class EncoderDecoderInfo {
     val = fields.redelivered;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"redelivered\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -4166,7 +4166,7 @@ class EncoderDecoderInfo {
     val = fields.nowait;
     if (val == null) {
       val = false;
-    } else if (!(true)) {
+    } else if (!(Std.isOfType(val, Bool))) {
       throw new haxe.Exception("Field \"nowait\" is the wrong type; must be booleany");
     }
     if (cast(val, Bool)) {
@@ -4779,7 +4779,7 @@ class EncoderDecoderInfo {
       default: throw new haxe.Exception('Unknown class/method id $id');
     }
   }
-  public static function encodeProperties(id:Int, channel:Dynamic, size:Dynamic, fields:Dynamic):Dynamic {
+  public static function encodeProperties(id:Int, channel:Dynamic, size:Dynamic, fields:Dynamic):Bytes {
     switch (id) {
       case 60: return encodeBasicProperties(channel, size, fields);
       default: throw new haxe.Exception('Unknown class/properties id $id');

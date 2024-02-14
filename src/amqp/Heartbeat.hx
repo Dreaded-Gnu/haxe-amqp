@@ -16,6 +16,11 @@ class Heartbeat extends Dispatcher<Heartbeat> {
   private var checkTimer:Timer;
   private var missedBeats:Int;
 
+  /**
+   * Constructor
+   * @param interval
+   * @param checkHeartbeat
+   */
   public function new(interval:Int, checkHeartbeat:() -> Bool) {
     // call parent constructor
     super();

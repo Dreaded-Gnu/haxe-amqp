@@ -18,7 +18,7 @@ import amqp.helper.protocol.Constant;
 /**
  * Connection class
  */
-class Connection extends Dispatcher<Event> {
+class Connection extends Dispatcher<Dynamic> {
   public static inline var EVENT_CONNECTED:Event = "connected";
   public static inline var EVENT_CLOSED:Event = "closed";
   public static inline var EVENT_ERROR:Event = "error";
@@ -33,6 +33,7 @@ class Connection extends Dispatcher<Event> {
   public var closed(default, null):Bool;
   public var heartbeatStatus(default, default):Bool;
 
+  private var rest:BytesOutput;
   private var receiveTimer:Timer;
   private var thread:Thread;
   private var frame:Frame;
@@ -55,6 +56,7 @@ class Connection extends Dispatcher<Event> {
     this.frame = new Frame();
     this.frameMax = Constant.FRAME_MIN_SIZE;
     this.heartbeatStatus = false;
+    this.rest = new BytesOutput();
     // register event callbacks
     this.register(EVENT_CONNECTED);
     this.register(EVENT_CLOSED);
@@ -136,32 +138,6 @@ class Connection extends Dispatcher<Event> {
   }
 
   /**
-   * Read data provided by thread
-   * @param output
-   * @return Dynamic
-   */
-   private function readData():Dynamic {
-    while (true) {
-      // get bytes from output buffer filled by thread
-      var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
-      // flush out
-      this.output.flush();
-      // handle no data
-      if (bytes.length == 0) {
-        Sys.sleep(1);
-        continue;
-      }
-      // create bytes input accessor with big endian
-      var input:BytesInput = new BytesInput(bytes);
-      input.bigEndian = true;
-      // parse frame
-      var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
-      // return decoded frame
-      return this.frame.decodeFrame(parsedFrame);
-    }
-  }
-
-  /**
    * Helper to check heartbeat status with reset
    * @return Bool
    */
@@ -227,28 +203,38 @@ class Connection extends Dispatcher<Event> {
     var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
     // flush out
     this.output.flush();
-    // handle data
+    // handle no data
     if (bytes.length > 0) {
-      // create bytes input accessor with big endian
-      var input:BytesInput = new BytesInput(bytes);
-      input.bigEndian = true;
-      // parse frame
-      var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
-      // handle possible further stuff
-      if (parsedFrame.rest.length > 0) {
-        throw new Exception("There is more in the buffer!!!");
-      } else if (parsedFrame == null) {
-        throw new Exception("Package maybe incomplete!");
-      }
-      // return decoded frame
-      var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
-      // get channel
-      var channel:Channel = this.channelMap.get(parsedFrame.channel);
-      if (null == channel) {
-        closeWithError("Invalid channel received!", Constant.CHANNEL_ERROR);
-      } else {
-        channel.accept(decodedFrame);
-      }
+      // write to rest
+      this.rest.writeBytes(bytes, 0, bytes.length);
+    }
+    // get everything from rest
+    bytes = Bytes.ofData(this.rest.getBytes().getData());
+    // flush rest
+    this.rest.flush();
+    // handle no data
+    if (bytes.length == 0) {
+      return;
+    }
+    // create bytes input accessor with big endian
+    var input:BytesInput = new BytesInput(bytes);
+    input.bigEndian = true;
+    // parse frame
+    var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
+    // handle possible further stuff
+    if (parsedFrame.rest.length > 0) {
+      this.rest.writeBytes(parsedFrame.rest, 0, parsedFrame.rest.length);
+    } else if (parsedFrame == null) {
+      this.rest.writeBytes(bytes, 0, bytes.length);
+    }
+    // return decoded frame
+    var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
+    // get channel
+    var channel:Channel = this.channelMap.get(parsedFrame.channel);
+    if (null == channel) {
+      closeWithError("Invalid channel received!", Constant.CHANNEL_ERROR);
+    } else {
+      channel.accept(decodedFrame);
     }
   }
 
@@ -294,70 +280,65 @@ class Connection extends Dispatcher<Event> {
     // send message to thread
     thread.sendMessage(this);
 
-    // send protocol header
-    var b:Bytes = Bytes.ofString(Frame.PROTOCOL_HEADER);
-    this.sock.output.writeFullBytes(b, 0, b.length);
-
-    // read data, decode frame and check for connection start was sent
-    var frame:Dynamic = this.readData();
-    if (frame.id != EncoderDecoderInfo.ConnectionStart) {
-      throw new Exception('Expected ${EncoderDecoderInfo.info(EncoderDecoderInfo.ConnectionStart).name}');
-    }
-
-    // check whether mechanism is supported
-    var mechanisms:Array<String> = cast(frame.fields.mechanisms, String).split(' ');
-    if (mechanisms.indexOf(openFrameData.startOk.mechanism) == -1) {
-      throw new Exception('SASL mechanism ${openFrameData.startOk.mechanism} is not provided by the server');
-    }
-    // validate version
-    if (!(frame.fields.versionMajor == 0 && frame.fields.versionMinor == 9)) {
-      this.sock.close();
-      throw new Exception('Unsupported protocol version detected: ${frame.fields.versionMajor}.${frame.fields.versionMinor}');
-    }
-    // save server properties
-    this.serverProperties = frame.fields.serverProperties;
-
-    // Send connection start ok
-    sendMethod(0, EncoderDecoderInfo.ConnectionStartOk, openFrameData.startOk);
-
-    // decode frame and check for tune
-    frame = this.readData();
-    if (frame.id != EncoderDecoderInfo.ConnectionTune) {
-      throw new Exception('Expected ${EncoderDecoderInfo.info(EncoderDecoderInfo.ConnectionTune).name}');
-    }
-    // adjust openFrameData tune ok according to return from server
-    openFrameData.tuneOk.frameMax = negotiate(frame.fields.frameMax, openFrameData.tuneOk.frameMax);
-    openFrameData.tuneOk.channelMax = negotiate(frame.fields.channelMax, openFrameData.tuneOk.channelMax);
-    openFrameData.tuneOk.heartbeat = negotiate(frame.fields.heartbeat, openFrameData.tuneOk.heartbeat);
-    // send tune ok
-    sendMethod(0, EncoderDecoderInfo.ConnectionTuneOk, openFrameData.tuneOk);
-
-    // send open message
-    sendMethod(0, EncoderDecoderInfo.ConnectionOpen, openFrameData.open);
-
-    // decode frame and check for connection open ok
-    frame = this.readData();
-    if (frame.id != EncoderDecoderInfo.ConnectionOpenOk) {
-      throw new Exception('Expected ${EncoderDecoderInfo.info(EncoderDecoderInfo.ConnectionOpenOk).name}');
-    }
-    // store channel max, frame max and heartbeat
-    this.channelMax = openFrameData.tuneOk.channelMax;
-    this.frameMax = openFrameData.tuneOk.frameMax;
-    this.heartbeat = openFrameData.tuneOk.heartbeat;
-
+    var channel:Channel0 = new Channel0(this, 0);
     // setup map
     this.channelMap = new Map<Int, Channel>();
     // insert instance for control channel 0
-    this.channelMap.set(0, new Channel0(this));
+    this.channelMap.set(0, channel);
     // set next channel id
     this.nextChannelId = 1;
-
     // set receive timer
     this.receiveTimer = new Timer(ACCEPTOR_TIMEOUT);
     this.receiveTimer.run = this.receiveAcceptor;
-    this.startHeartbeat();
 
-    this.trigger(EVENT_CONNECTED, "Successfully connected!");
+    function onOpenOk(frame:Dynamic):Void {
+      // store channel max, frame max and heartbeat
+      this.channelMax = openFrameData.tuneOk.channelMax;
+      this.frameMax = openFrameData.tuneOk.frameMax;
+      this.heartbeat = openFrameData.tuneOk.heartbeat;
+      // start heartbeat
+      this.startHeartbeat();
+      // trigger connected
+      this.trigger(EVENT_CONNECTED, this);
+    }
+
+    function onTuneResponse(frame:Dynamic):Void {
+      // adjust openFrameData tune ok according to return from server
+      openFrameData.tuneOk.frameMax = negotiate(frame.fields.frameMax, openFrameData.tuneOk.frameMax);
+      openFrameData.tuneOk.channelMax = negotiate(frame.fields.channelMax, openFrameData.tuneOk.channelMax);
+      openFrameData.tuneOk.heartbeat = negotiate(frame.fields.heartbeat, openFrameData.tuneOk.heartbeat);
+      // send tune ok
+      sendMethod(0, EncoderDecoderInfo.ConnectionTuneOk, openFrameData.tuneOk);
+      // set expected frame callback and id
+      channel.setExpected(EncoderDecoderInfo.ConnectionOpenOk, onOpenOk);
+      // send open message
+      sendMethod(0, EncoderDecoderInfo.ConnectionOpen, openFrameData.open);
+    }
+
+    function onProtocolReturn(frame:Dynamic):Void {
+      // check whether mechanism is supported
+      var mechanisms:Array<String> = cast(frame.fields.mechanisms, String).split(' ');
+      if (mechanisms.indexOf(openFrameData.startOk.mechanism) == -1) {
+        throw new Exception('SASL mechanism ${openFrameData.startOk.mechanism} is not provided by the server');
+      }
+      // validate version
+      if (!(frame.fields.versionMajor == 0 && frame.fields.versionMinor == 9)) {
+        this.sock.close();
+        throw new Exception('Unsupported protocol version detected: ${frame.fields.versionMajor}.${frame.fields.versionMinor}');
+      }
+      // save server properties
+      this.serverProperties = frame.fields.serverProperties;
+
+      // Send connection start ok
+      channel.setExpected(EncoderDecoderInfo.ConnectionTune, onTuneResponse);
+      this.sendMethod(0, EncoderDecoderInfo.ConnectionStartOk, openFrameData.startOk);
+    }
+
+    // set expected frame for channel0
+    channel.setExpected(EncoderDecoderInfo.ConnectionStart, onProtocolReturn);
+    // send protocol header
+    var b:Bytes = Bytes.ofString(Frame.PROTOCOL_HEADER);
+    this.sock.output.writeFullBytes(b, 0, b.length);
   }
 
   /**
@@ -382,11 +363,12 @@ class Connection extends Dispatcher<Event> {
     // get next id
     var chlId:Int = this.nextChannelId++;
     // instanciate new channel
-    var ch:Channel = new Channel(this);
+    var ch:Channel = new Channel(this, chlId);
     // push back to channel map
     this.channelMap.set(chlId, ch);
-    // kickstart channel open and return created channel
+    // open channel
     ch.open();
+    // return created channel
     return ch;
   }
 

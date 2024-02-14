@@ -138,7 +138,7 @@ class GenerateDefinition {
     switch (arg.type) {
       // everything is booleany
       case 'bit':
-        return 'true';
+        return 'Std.isOfType(val, Bool)';
       case 'octet',
            'short',
            'long',
@@ -848,7 +848,7 @@ class Constant {
       default: throw new haxe.Exception('Unknown class/method id $id');
     }
   }
-  public static function encodeProperties(id:Int, channel:Dynamic, size:Dynamic, fields:Dynamic):Dynamic {
+  public static function encodeProperties(id:Int, channel:Dynamic, size:Dynamic, fields:Dynamic):Bytes {
     switch (id) {";
     for (p in properties) {
       functions += "
