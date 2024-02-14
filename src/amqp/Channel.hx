@@ -1,13 +1,15 @@
 package amqp;
 
-import amqp.channel.config.Queue;
-import amqp.channel.config.BasicPublish;
-import amqp.helper.protocol.Constant;
-import amqp.helper.protocol.EncoderDecoderInfo;
+import haxe.io.Encoding;
+import amqp.helper.Bytes;
 import haxe.Exception;
-import amqp.channel.type.ChannelState;
 import hxdispatch.Dispatcher;
 import hxdispatch.Event;
+import amqp.channel.config.Queue;
+import amqp.helper.protocol.Constant;
+import amqp.helper.protocol.EncoderDecoderInfo;
+import amqp.channel.type.ChannelState;
+import amqp.channel.type.BasicPublish;
 
 class Channel extends Dispatcher<Dynamic> {
   public static inline var EVENT_ACK:Event = "ack";
@@ -166,6 +168,50 @@ class Channel extends Dispatcher<Dynamic> {
    * @param options
    */
   public function basicPublish(exchange:String = '', routingKey:String = '', message:String = '', options:BasicPublish = null):Void {
+    // populate headers
+    var headers:Dynamic = {};
+    if (null != options?.BCC) {
+      Reflect.setField(headers, 'BCC', options.BCC);
+    }
+    if (null != options?.CC) {
+      Reflect.setField(headers, 'CC', options.CC);
+    }
+    // evaluate delivery mode
+    var deliveryMode:Int = options?.persistant != null ? (options.persistant ? 2 : 1) : 1;
+    // build fields for sending
+    var methodFields:Dynamic = {
+      // method fields
+      exchange: exchange,
+      routingKey: routingKey,
+      mandatory: options?.mandatory != null ? options.mandatory : false,
+      ticket: null,
+    };
+    // properties
+    var propertyFields:Dynamic = {
+      contentType: options?.contentType,
+      contentEncoding: options?.contentEncoding,
+      headers: headers,
+      deliveryMode: deliveryMode,
+      priority: options?.priority,
+      correlationId: options?.correlationId,
+      replyTo: options?.replyTo,
+      expiration: options?.expiration,
+      messageId: options?.messageId,
+      timestamp: options?.timestamp,
+      type: options?.type,
+      userId: options?.userId,
+      appId: options?.appId,
+      clusterId: null
+    }
+    // finally send message
+    this.connection.sendMessage(
+      this.channelId,
+      EncoderDecoderInfo.BasicPublish,
+      methodFields,
+      EncoderDecoderInfo.BasicProperties,
+      propertyFields,
+      Bytes.ofString(message, Encoding.UTF8)
+    );
   }
 
   /**

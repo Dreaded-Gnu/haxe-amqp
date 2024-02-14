@@ -25,6 +25,7 @@ class Connection extends Dispatcher<Dynamic> {
   public static inline var EVENT_BLOCKED:Event = "blocked";
   public static inline var EVENT_UNBLOCKED:Event = "unblocked";
 
+  private static inline var SINGLE_CHUNK_THRESHOLD:Int = 2048;
   private static inline var ACCEPTOR_TIMEOUT:Int = 1000;
 
   public var config(default, null):Config;
@@ -395,6 +396,89 @@ class Connection extends Dispatcher<Dynamic> {
     this.sock.output.writeFullBytes(frame, 0, frame.length);
     // flush socket output
     this.sock.output.flush();
+  }
+
+  /**
+   * Wrapper to send a message
+   * @param channel
+   * @param method
+   * @param methodFields
+   * @param property
+   * @param propertyFields
+   * @param content
+   */
+  public function sendMessage(channel:Int, method:Int, methodFields:Dynamic, property:Int, propertyFields:Dynamic, content:Bytes):Int {
+    // encode method and properties
+    var mframe:Bytes = EncoderDecoderInfo.encodeMethod(method, channel, methodFields);
+    var pframe:Bytes = EncoderDecoderInfo.encodeProperties(property, channel, content.length, propertyFields);
+    // determine length
+    var methodHeaderLength:Int = mframe.length + pframe.length;
+    var bodyLength:Int = content.length > 0 ? content.length + Constant.FRAME_OVERHEAD : 0;
+    var totalLength:Int = methodHeaderLength + bodyLength;
+
+    if (totalLength < SINGLE_CHUNK_THRESHOLD) {
+      // build send package
+      var output:BytesOutput = new BytesOutput();
+      output.writeBytes(mframe, 0, mframe.length);
+      output.writeBytes(pframe, 0, pframe.length);
+      var bodyFrame:Bytes = this.frame.makeBodyFrame(channel, content);
+      output.writeBytes(bodyFrame, 0, bodyFrame.length);
+      // translate into bytes wrapper
+      var frame:Bytes = Bytes.ofData(output.getBytes().getData());
+      // write to network
+      this.sock.output.writeFullBytes(frame, 0, frame.length);
+      this.sock.output.flush();
+      // return written length
+      return bodyLength;
+    }
+
+    // write mframe and pframe
+    if (methodHeaderLength < SINGLE_CHUNK_THRESHOLD) {
+      // build send package
+      var output:BytesOutput = new BytesOutput();
+      output.writeBytes(mframe, 0, mframe.length);
+      output.writeBytes(pframe, 0, pframe.length);
+      // translate into bytes wrapper
+      var frame:Bytes = Bytes.ofData(output.getBytes().getData());
+      // write to network
+      this.sock.output.writeFullBytes(frame, 0, frame.length);
+      this.sock.output.flush();
+    } else {
+      this.sock.output.writeFullBytes(mframe, 0, mframe.length);
+      this.sock.output.writeFullBytes(pframe, 0, pframe.length);
+    }
+    // send content finally
+    return this.sendContent(channel, content);
+  }
+
+  /**
+   * Wrapper to send content
+   * @param channel
+   * @param content
+   * @return Int
+   */
+  public function sendContent(channel:Int, content:Bytes):Int {
+    var maxBody:Int = this.frameMax - Constant.FRAME_OVERHEAD;
+    var offset:Int = 0;
+    var written:Int = 0;
+    while (offset < content.length) {
+      // calculate new end
+      var end:Int = offset+maxBody;
+      // cap end
+      if (end > content.length) {
+        end = content.length;
+      }
+      var slice:Bytes = content.sub(offset, end - offset);
+      var bodyFrame:Bytes = this.frame.makeBodyFrame(channel, slice);
+      // write to network
+      this.sock.output.writeFullBytes(bodyFrame, 0, bodyFrame.length);
+      this.sock.output.flush();
+      // increase written
+      written += bodyFrame.length;
+      // increase offset
+      offset+=maxBody;
+    }
+    return written;
   }
 
   /**

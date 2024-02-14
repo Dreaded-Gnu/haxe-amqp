@@ -13,21 +13,16 @@ class Sender {
     var conn:Connection = new Connection(cfg);
     // add connected listener
     conn.attach(Connection.EVENT_CONNECTED, function(connection:Connection) {
-      trace("Connected!");
       // create channel
-      trace("create channel!");
       var channel:Channel = connection.channel();
-      trace("create queue!");
       // create queue config
       var queueConfig:Queue = new Queue();
       queueConfig.queue = 'hello';
       // declare queue
       channel.declareQueue(queueConfig);
-      trace("publish message!");
       // publish a message
       channel.basicPublish('', 'hello', 'hello world');
       // close channel finally
-      trace("close connection!");
       conn.close();
     });
     // add closed listener

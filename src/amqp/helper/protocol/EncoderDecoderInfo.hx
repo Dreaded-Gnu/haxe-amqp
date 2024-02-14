@@ -4313,13 +4313,14 @@ class EncoderDecoderInfo {
       }
     }
     val = fields.headers;
+    var headers_encoded:Bytes = null;
     if (val != null) {
       if (Std.isOfType(val, Dynamic)) {
     // ensure big endian and flush previous content
     SCRATCH.bigEndian = true;
     SCRATCH.flush();
     // encode table
-    var headers_encoded:Bytes = Codec.EncodeTable(SCRATCH, val);
+    headers_encoded = Codec.EncodeTable(SCRATCH, val);
         varyingSize += headers_encoded.length;
       } else {
         throw new haxe.Exception('Field "headers" is the wrong type; must be a Dynamic');
@@ -4453,7 +4454,7 @@ class EncoderDecoderInfo {
     val = fields.headers;
     if (val != null) {
       flags += 8192;
-      output.writeString(cast(val, String), haxe.io.Encoding.UTF8);
+      output.writeBytes(headers_encoded, 0, headers_encoded.length);
     }
     val = fields.deliveryMode;
     if (val != null) {

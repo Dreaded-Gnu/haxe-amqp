@@ -206,19 +206,25 @@ class GenerateDefinition {
     return logic;
   }
 
+  private static function CreateTable(a:Dynamic):String {
+    return "
+    var " + TableVar(a) + ":Bytes = null;";
+  }
+
   /**
    * Emit code for encoding `val` as a table and assign to a fresh
    * variable (based on the arg name).
    * @param a
    * @return String
    */
-  private static function AssignTable(a:Dynamic):String {
+  private static function AssignTable(a:Dynamic, withCreate:Bool = true):String {
     return "
     // ensure big endian and flush previous content
     SCRATCH.bigEndian = true;
     SCRATCH.flush();
-    // encode table
-    var " + TableVar(a) + ":Bytes = Codec.EncodeTable(SCRATCH, val);";
+    // encode table" + (withCreate ? "
+    var " + TableVar(a) + ":Bytes = Codec.EncodeTable(SCRATCH, val);" : "
+    " + TableVar(a) + " = Codec.EncodeTable(SCRATCH, val);");
   }
 
   /**
@@ -512,7 +518,7 @@ class GenerateDefinition {
   var args:Array<Dynamic> = cast(m.args, Array<Dynamic>);
 
   for (arg in args) {
-    method += AssignArg(arg) + "
+    method += AssignArg(arg) + (arg.type == "table" ? CreateTable(arg) : "") + "
     if (val != null) {
       if (" + ValTypeTest(arg) + ") {";
     switch (arg.type) {
@@ -525,7 +531,7 @@ class GenerateDefinition {
         varyingSize += 4;
         varyingSize += cast(val, String).length;";
     case 'table':
-      method += AssignTable(arg) + "
+      method += AssignTable(arg, false) + "
         varyingSize += " + TableVar(arg) + ".length;";
     case 'octet':
       method += "
@@ -599,7 +605,7 @@ class GenerateDefinition {
       output.writeString(cast(val, String), haxe.io.Encoding.UTF8);";
       case 'table':
         method += "
-      output.writeString(cast(val, String), haxe.io.Encoding.UTF8);";
+      output.writeBytes(" + TableVar(arg) + ", 0, " + TableVar(arg) + ".length);";
       default: throw new Exception('Unexpected argument type: ${arg.type}');
       }
     }
