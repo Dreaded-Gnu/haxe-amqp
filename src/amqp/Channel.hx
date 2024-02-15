@@ -1,5 +1,6 @@
 package amqp;
 
+import amqp.channel.type.ConsumeQueue;
 import haxe.io.Encoding;
 import amqp.helper.Bytes;
 import haxe.Exception;
@@ -97,6 +98,7 @@ class Channel extends Dispatcher<Dynamic> {
       this.connection.closeWithError(e.message, Constant.UNEXPECTED_FRAME);
       return;
     }
+    trace(frame, frame.size?.low, frame.size?.high);
   }
 
   /**
@@ -104,10 +106,12 @@ class Channel extends Dispatcher<Dynamic> {
    * @param callback
    */
   public function open(callback: (channel:Channel)->Void):Void {
-    this.expectedCallback.push((frame:Dynamic) -> {
-      callback(this);
-    });
-    this.expectedFrame.push(EncoderDecoderInfo.ChannelOpenOk);
+    this.setExpected(
+      EncoderDecoderInfo.ChannelOpenOk,
+      (frame:Dynamic) -> {
+        callback(this);
+      }
+    );
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelOpen, {outOfBand:""});
   }
 
@@ -116,10 +120,12 @@ class Channel extends Dispatcher<Dynamic> {
    * @param callback
    */
   public function close(callback:()->Void):Void {
-    this.expectedCallback.push((frame:Dynamic)-> {
-      callback();
-    });
-    this.expectedFrame.push(EncoderDecoderInfo.ChannelCloseOk);
+    this.setExpected(
+      EncoderDecoderInfo.ChannelCloseOk,
+      (frame:Dynamic) -> {
+        callback();
+      }
+    );
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelClose, {
       replyText: 'Goodbye',
       replyCode: Constant.REPLY_SUCCESS,
@@ -172,13 +178,79 @@ class Channel extends Dispatcher<Dynamic> {
       nowait: config.nowait,
     };
 
-    this.expectedFrame.push(EncoderDecoderInfo.QueueDeclareOk);
-    this.expectedCallback.push((frame:Dynamic) -> {
-      callback();
-    });
+    this.setExpected(
+      EncoderDecoderInfo.QueueDeclareOk,
+      (frame:Dynamic) -> {
+        callback();
+      }
+    );
     this.connection.sendMethod(
       this.channelId,
       EncoderDecoderInfo.QueueDeclare,
+      fields
+    );
+  }
+
+  /**
+   * Consume a queue
+   * @param config
+   * @param callback
+   */
+  public function consumeQueue(config:ConsumeQueue, callback:(message:Dynamic)->Void):Void {
+    // fill argument table
+    var argt:Dynamic = {};
+    if (Reflect.hasField(config, 'priority')) {
+      Reflect.setField(argt, 'x-priority', config.priority);
+    }
+    // build fields
+    var fields:Dynamic = {
+      arguments: argt,
+    };
+    if (Reflect.hasField(config, 'ticket')) {
+      Reflect.setField(fields, 'ticket', config.ticket);
+    } else {
+      Reflect.setField(fields, 'ticket', 0);
+    }
+    if (Reflect.hasField(config, 'queue')) {
+      Reflect.setField(fields, 'queue', config.queue);
+    }
+    if (Reflect.hasField(config, 'consumerTag')) {
+      Reflect.setField(fields, 'consumerTag', config.consumerTag);
+    } else {
+      Reflect.setField(fields, 'consumerTag', '');
+    }
+    if (Reflect.hasField(config, 'noLocal')) {
+      Reflect.setField(fields, 'noLocal', config.noLocal);
+    } else {
+      Reflect.setField(fields, 'noLocal', false);
+    }
+    if (Reflect.hasField(config, 'noAck')) {
+      Reflect.setField(fields, 'noAck', config.noAck);
+    } else {
+      Reflect.setField(fields, 'noAck', false);
+    }
+    if (Reflect.hasField(config, 'exclusive')) {
+      Reflect.setField(fields, 'exclusive', config.exclusive);
+    } else {
+      Reflect.setField(fields, 'exclusive', false);
+    }
+    if (Reflect.hasField(config, 'nowait')) {
+      Reflect.setField(fields, 'nowait', config.nowait);
+    } else {
+      Reflect.setField(fields, 'nowait', false);
+    }
+    // set expected frame and callback
+    this.setExpected(
+      EncoderDecoderInfo.BasicConsumeOk,
+      (frame:Dynamic) -> {
+        trace(frame);
+        trace("bind callback!");
+      }
+    );
+    // send method
+    this.connection.sendMethod(
+      this.channelId,
+      EncoderDecoderInfo.BasicConsume,
       fields
     );
   }
@@ -237,6 +309,86 @@ class Channel extends Dispatcher<Dynamic> {
       EncoderDecoderInfo.BasicProperties,
       propertyFields,
       message
+    );
+  }
+
+  /**
+   * Acknowledge a message
+   * @param message
+   * @param allUpTo
+   */
+  public function ack(message:Dynamic, allUpTo:Bool = false):Void {
+    this.connection.sendMethod(
+      this.channelId,
+      EncoderDecoderInfo.BasicAck,
+      {
+        deliveryTag: message.fields.deliveryTag0,
+        multiple: allUpTo,
+      }
+    );
+  }
+
+  /**
+   * Acknowledge all messages
+   */
+  public function ackAll():Void {
+    this.connection.sendMethod(
+      this.channelId,
+      EncoderDecoderInfo.BasicAck,
+      {
+        deliveryTag: 0,
+        multiple: true,
+      }
+    );
+  }
+
+  /**
+   * Not acknowledge a message
+   * @param message
+   * @param allUpTo
+   * @param requeue
+   */
+  public function nack(message:Dynamic, allUpTo:Bool = false, requeue:Bool = false):Void {
+    this.connection.sendMethod(
+      this.channelId,
+      EncoderDecoderInfo.BasicNack,
+      {
+        deliveryTag: message.fields.deliveryTag,
+        multiple: allUpTo,
+        requeue: requeue,
+      }
+    );
+  }
+
+  /**
+   * Not acknowledge all messages
+   * @param requeue
+   */
+  public function nackAll(requeue:Bool = false):Void {
+    this.connection.sendMethod(
+      this.channelId,
+      EncoderDecoderInfo.BasicNack,
+      {
+        deliveryTag: 0,
+        multiple: true,
+        requeue: requeue,
+      }
+    );
+  }
+
+  /**
+   * Reject a message
+   * @param message
+   * @param requeue
+   */
+  public function reject(message:Dynamic, requeue:Bool = false):Void {
+    this.connection.sendMethod(
+      this.channelId,
+      EncoderDecoderInfo.BasicReject,
+      {
+        deliveryTag: message.fields.deliveryTag,
+        requeue: requeue,
+      }
     );
   }
 

@@ -33,7 +33,15 @@ class Receiver {
         queueConfig.queue = QUEUE;
         // declare queue
         channel.declareQueue(queueConfig, () -> {
-          // FIXME: CONSUME CHANNEL
+          // consume queue
+          channel.consumeQueue({queue: QUEUE}, (message:Dynamic) -> {
+            if (message != null) {
+              trace(message.content.toString());
+              channel.ack(message);
+            } else {
+              trace('Consumer cancelled by server!');
+            }
+          });
         });
       });
     });
