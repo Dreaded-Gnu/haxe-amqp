@@ -101,18 +101,39 @@ class Channel extends Dispatcher<Dynamic> {
 
   /**
    * Method to open the channel
+   * @param callback
    */
-  public function open():Void {
-    this.expectedCallback.push((frame:Dynamic) -> {});
+  public function open(callback: (channel:Channel)->Void):Void {
+    this.expectedCallback.push((frame:Dynamic) -> {
+      callback(this);
+    });
     this.expectedFrame.push(EncoderDecoderInfo.ChannelOpenOk);
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelOpen, {outOfBand:""});
   }
 
   /**
+   * Close channel
+   * @param callback
+   */
+  public function close(callback:()->Void):Void {
+    this.expectedCallback.push((frame:Dynamic)-> {
+      callback();
+    });
+    this.expectedFrame.push(EncoderDecoderInfo.ChannelCloseOk);
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelClose, {
+      replyText: 'Goodbye',
+      replyCode: Constant.REPLY_SUCCESS,
+      methodId: 0,
+      classId: 0,
+    });
+  }
+
+  /**
    * Method to declare a queue
    * @param config
+   * @param callback
    */
-  public function declareQueue(config:Queue) {
+  public function declareQueue(config:Queue, callback:()->Void):Void {
     // build arguments dynamic
     var arg:Dynamic = {};
     if (Reflect.hasField(config.arguments, "expires")) {
@@ -152,7 +173,9 @@ class Channel extends Dispatcher<Dynamic> {
     };
 
     this.expectedFrame.push(EncoderDecoderInfo.QueueDeclareOk);
-    this.expectedCallback.push((frame:Dynamic) -> {});
+    this.expectedCallback.push((frame:Dynamic) -> {
+      callback();
+    });
     this.connection.sendMethod(
       this.channelId,
       EncoderDecoderInfo.QueueDeclare,
@@ -167,7 +190,10 @@ class Channel extends Dispatcher<Dynamic> {
    * @param message
    * @param options
    */
-  public function basicPublish(exchange:String = '', routingKey:String = '', message:String = '', options:BasicPublish = null):Void {
+  public function basicPublish(exchange:String = '', routingKey:String = '', message:Bytes = null, options:BasicPublish = null):Void {
+    if (message == null) {
+      message = Bytes.ofString("", Encoding.UTF8);
+    }
     // populate headers
     var headers:Dynamic = {};
     if (null != options?.BCC) {
@@ -210,7 +236,7 @@ class Channel extends Dispatcher<Dynamic> {
       methodFields,
       EncoderDecoderInfo.BasicProperties,
       propertyFields,
-      Bytes.ofString(message, Encoding.UTF8)
+      message
     );
   }
 

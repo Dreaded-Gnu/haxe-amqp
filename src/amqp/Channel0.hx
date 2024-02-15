@@ -41,7 +41,7 @@ class Channel0 extends Channel {
       // send close ok
       this.connection.sendMethod(0, EncoderDecoderInfo.ConnectionCloseOk, {});
       // shutdown everything
-      this.connection.shutdown();
+      this.connection.shutdown(frame.fields.replyText);
     } else if (frame.id == EncoderDecoderInfo.ConnectionCloseOk) {
       // shutdown everything
       this.connection.shutdown();
@@ -57,7 +57,7 @@ class Channel0 extends Channel {
   /**
    * Override of open function
    */
-  override public function open() {}
+  override public function open(callback: (channel:Channel)->Void) {}
 
   /**
    * Shutdown method

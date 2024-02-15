@@ -19,7 +19,6 @@ import amqp.helper.protocol.Constant;
  * Connection class
  */
 class Connection extends Dispatcher<Dynamic> {
-  public static inline var EVENT_CONNECTED:Event = "connected";
   public static inline var EVENT_CLOSED:Event = "closed";
   public static inline var EVENT_ERROR:Event = "error";
   public static inline var EVENT_BLOCKED:Event = "blocked";
@@ -59,7 +58,6 @@ class Connection extends Dispatcher<Dynamic> {
     this.heartbeatStatus = false;
     this.rest = new BytesOutput();
     // register event callbacks
-    this.register(EVENT_CONNECTED);
     this.register(EVENT_CLOSED);
     this.register(EVENT_ERROR);
     this.register(EVENT_BLOCKED);
@@ -256,8 +254,9 @@ class Connection extends Dispatcher<Dynamic> {
 
   /**
    * Connect to amqp with performing handshake
+   * @param callback
    */
-  public function connect():Void {
+  public function connect(callback:()->Void):Void {
     // generate socket
     if (this.config.isSecure) {
       this.sock = new sys.ssl.Socket();
@@ -299,8 +298,8 @@ class Connection extends Dispatcher<Dynamic> {
       this.heartbeat = openFrameData.tuneOk.heartbeat;
       // start heartbeat
       this.startHeartbeat();
-      // trigger connected
-      this.trigger(EVENT_CONNECTED, this);
+      // execute callback
+      callback();
     }
 
     function onTuneResponse(frame:Dynamic):Void {
@@ -358,9 +357,10 @@ class Connection extends Dispatcher<Dynamic> {
 
   /**
    * Function generates a new channel
+   * @param callback
    * @return Channel
    */
-  public function channel():Channel {
+  public function channel(callback: (channel:Channel)->Void):Channel {
     // get next id
     var chlId:Int = this.nextChannelId++;
     // instanciate new channel
@@ -368,7 +368,7 @@ class Connection extends Dispatcher<Dynamic> {
     // push back to channel map
     this.channelMap.set(chlId, ch);
     // open channel
-    ch.open();
+    ch.open(callback);
     // return created channel
     return ch;
   }
@@ -486,7 +486,6 @@ class Connection extends Dispatcher<Dynamic> {
    * @param reason
    */
   public function shutdown(reason:String = "shutdown"):Void {
-    trace("shutdown everything!");
     // shutdown all channels
     for (i in this.channelMap) {
       i.shutdown();
