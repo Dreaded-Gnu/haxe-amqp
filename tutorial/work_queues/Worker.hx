@@ -30,13 +30,16 @@ class Worker {
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
         channel.declareQueue({queue: QUEUE, durable: true,}, () -> {
-          // consume queue
-          channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
-            if (message != null) {
-              trace('Received "${message.content.toString()}"');
-              Sys.sleep(message.content.length);
-              channel.ack(message);
-            }
+          // only one message at the time
+          channel.basicQos({prefetchCount: 1,}, () -> {
+            // consume queue
+            channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
+              if (message != null) {
+                trace('Received "${message.content.toString()}"');
+                Sys.sleep(message.content.length);
+                channel.ack(message);
+              }
+            });
           });
         });
       });

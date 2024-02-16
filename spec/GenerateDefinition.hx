@@ -142,7 +142,7 @@ class GenerateDefinition {
       case 'octet',
            'short',
            'long':
-        return "(Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val)";
+        return "Std.isOfType(val, Int)";
       case 'longlong',
            'timestamp':
         return "Int64.isInt64(val)";

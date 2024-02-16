@@ -388,7 +388,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -514,7 +514,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -584,7 +584,7 @@ class EncoderDecoderInfo {
     val = fields.messageCount;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"messageCount\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"messageCount\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
@@ -640,7 +640,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -731,7 +731,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 1;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -858,21 +858,21 @@ class EncoderDecoderInfo {
     val = fields.channelMax;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"channelMax\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
     val = fields.frameMax;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"frameMax\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
     val = fields.heartbeat;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"heartbeat\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -1240,7 +1240,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -1389,7 +1389,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -1585,14 +1585,14 @@ class EncoderDecoderInfo {
     val = fields.prefetchSize;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"prefetchSize\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
     val = fields.prefetchCount;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"prefetchCount\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -1662,7 +1662,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -1924,7 +1924,7 @@ class EncoderDecoderInfo {
     val = fields.messageCount;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"messageCount\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"messageCount\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
@@ -1982,7 +1982,7 @@ class EncoderDecoderInfo {
     val = fields.replyCode;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"replyCode\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"replyCode\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -1993,14 +1993,14 @@ class EncoderDecoderInfo {
     val = fields.classId;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"classId\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"classId\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
     val = fields.methodId;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"methodId\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"methodId\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -2451,7 +2451,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -2595,7 +2595,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -2737,7 +2737,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -3076,7 +3076,7 @@ class EncoderDecoderInfo {
     val = fields.replyCode;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"replyCode\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"replyCode\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -3146,7 +3146,7 @@ class EncoderDecoderInfo {
     val = fields.replyCode;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"replyCode\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"replyCode\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -3157,14 +3157,14 @@ class EncoderDecoderInfo {
     val = fields.classId;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"classId\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"classId\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
     val = fields.methodId;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"methodId\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"methodId\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -3211,21 +3211,21 @@ class EncoderDecoderInfo {
     val = fields.channelMax;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"channelMax\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
     val = fields.frameMax;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"frameMax\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
     val = fields.heartbeat;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"heartbeat\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -3357,7 +3357,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -3611,14 +3611,14 @@ class EncoderDecoderInfo {
     val = fields.messageCount;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"messageCount\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"messageCount\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
     val = fields.consumerCount;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"consumerCount\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"consumerCount\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
@@ -3797,7 +3797,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -3954,7 +3954,7 @@ class EncoderDecoderInfo {
     val = fields.messageCount;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"messageCount\"");
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"messageCount\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt32(val);
@@ -4057,7 +4057,7 @@ class EncoderDecoderInfo {
     val = fields.ticket;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"ticket\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeInt16(val);
@@ -4162,14 +4162,14 @@ class EncoderDecoderInfo {
     val = fields.versionMajor;
     if (val == null) {
       val = 0;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"versionMajor\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeByte(val);
     val = fields.versionMinor;
     if (val == null) {
       val = 9;
-    } else if (!((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val))) {
+    } else if (!(Std.isOfType(val, Int))) {
       throw new haxe.Exception("Field \"versionMinor\" is the wrong type; must be a number (but not NaN)");
     }
     output.writeByte(val);
@@ -4236,7 +4236,7 @@ class EncoderDecoderInfo {
     }
     val = fields.deliveryMode;
     if (val != null) {
-      if ((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val)) {
+      if (Std.isOfType(val, Int)) {
         varyingSize += 1;
       } else {
         throw new haxe.Exception('Field "deliveryMode" is the wrong type; must be a number (but not NaN)');
@@ -4244,7 +4244,7 @@ class EncoderDecoderInfo {
     }
     val = fields.priority;
     if (val != null) {
-      if ((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val)) {
+      if (Std.isOfType(val, Int)) {
         varyingSize += 1;
       } else {
         throw new haxe.Exception('Field "priority" is the wrong type; must be a number (but not NaN)');

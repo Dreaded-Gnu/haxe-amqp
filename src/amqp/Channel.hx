@@ -1,5 +1,6 @@
 package amqp;
 
+import amqp.channel.type.BasicQos;
 import haxe.Int64;
 import amqp.helper.BytesOutput;
 import amqp.message.Message;
@@ -355,6 +356,19 @@ class Channel extends Dispatcher<Dynamic> {
     }
     // finally send message
     this.connection.sendMessage(this.channelId, EncoderDecoderInfo.BasicPublish, methodFields, EncoderDecoderInfo.BasicProperties, propertyFields, message);
+  }
+
+  /**
+   * Basic QOS
+   * @param option
+   * @param callback
+   * @return ->Void):Void
+   */
+  public function basicQos(option:BasicQos, callback:()->Void):Void {
+    this.setExpected(EncoderDecoderInfo.BasicQosOk, (frame:Dynamic)-> {
+      callback();
+    });
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicQos, option);
   }
 
   /**

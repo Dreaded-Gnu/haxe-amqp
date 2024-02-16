@@ -33,7 +33,7 @@ class Sender {
         // declare queue
         channel.declareQueue({queue: QUEUE}, () -> {
           // publish a message
-          channel.basicPublish('', 'hello', Bytes.ofString(MESSAGE, Encoding.UTF8));
+          channel.basicPublish('', QUEUE, Bytes.ofString(MESSAGE, Encoding.UTF8));
           trace(' [x] Sent ${MESSAGE}');
           // close channel
           channel.close(() -> {

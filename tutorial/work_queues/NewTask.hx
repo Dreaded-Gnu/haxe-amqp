@@ -38,7 +38,7 @@ class NewTask {
         // declare queue
         channel.declareQueue({queue: QUEUE, durable: true,}, () -> {
           // publish a message
-          channel.basicPublish('', 'hello', Bytes.ofString(message, Encoding.UTF8), {persistant: true,});
+          channel.basicPublish('', QUEUE, Bytes.ofString(message, Encoding.UTF8), {persistant: true,});
           trace(' [x] Sent ${message}');
           // close channel
           channel.close(() -> {
