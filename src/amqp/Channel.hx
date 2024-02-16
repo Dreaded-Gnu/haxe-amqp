@@ -3,17 +3,17 @@ package amqp;
 import haxe.Int64;
 import amqp.helper.BytesOutput;
 import amqp.message.Message;
-import amqp.channel.type.ConsumeQueue;
 import haxe.io.Encoding;
 import amqp.helper.Bytes;
 import haxe.Exception;
 import hxdispatch.Dispatcher;
 import hxdispatch.Event;
-import amqp.channel.config.Queue;
 import amqp.helper.protocol.Constant;
 import amqp.helper.protocol.EncoderDecoderInfo;
 import amqp.channel.type.ChannelState;
 import amqp.channel.type.BasicPublish;
+import amqp.channel.type.ConsumeQueue;
+import amqp.channel.type.Queue;
 
 class Channel extends Dispatcher<Dynamic> {
   public static inline var EVENT_ACK:Event = "ack";
@@ -24,8 +24,8 @@ class Channel extends Dispatcher<Dynamic> {
   private var channelId:Int;
   private var state:ChannelState;
   private var expectedFrame:Array<Int>;
-  private var expectedCallback:Array<(Dynamic)->Void>;
-  private var consumer:Map<String, Array<(message:Message)->Void>>;
+  private var expectedCallback:Array<(Dynamic) -> Void>;
+  private var consumer:Map<String, Array<(Message) -> Void>>;
   private var incomingMessage:Message;
   private var incomingMessageBuffer:BytesOutput;
 
@@ -59,9 +59,9 @@ class Channel extends Dispatcher<Dynamic> {
     this.connection = connection;
     this.channelId = channelId;
     this.state = ChannelStateInit;
-    this.expectedCallback = new Array<(frame:Dynamic)->Void>();
+    this.expectedCallback = new Array<(Dynamic) -> Void>();
     this.expectedFrame = new Array<Int>();
-    this.consumer = new Map<String, Array<(message:Message)->Void>>();
+    this.consumer = new Map<String, Array<(Message) -> Void>>();
     this.incomingMessage = null;
     this.incomingMessageBuffer = new BytesOutput();
     // register event handlers
@@ -76,9 +76,9 @@ class Channel extends Dispatcher<Dynamic> {
    * @param callback
    * @return ->Void):Void
    */
-  public function setExpected(method:Int, callback:(Dynamic)->Void):Void {
+  public function setExpected(method:Int, callback:(Dynamic) -> Void):Void {
     if (null == callback) {
-      throw new Exception( 'Callback for set expected is null!' );
+      throw new Exception('Callback for set expected is null!');
     }
     this.expectedFrame.push(method);
     this.expectedCallback.push(callback);
@@ -91,28 +91,24 @@ class Channel extends Dispatcher<Dynamic> {
   public function accept(frame:Dynamic):Void {
     try {
       var expected:Int = this.expectedFrame.length > 0 ? this.expectedFrame.shift() : 0;
-      var callback:(field:Dynamic)->Void = this.expectedCallback.shift();
+      var callback:(Dynamic) -> Void = this.expectedCallback.shift();
       // validate frame against expected
       this.validateExpectedFrame(expected, frame);
       // run expected callback if set
-      if (callback != null)
-      {
+      if (callback != null) {
         // execute callback
         callback(frame);
         // skip rest
         return;
       }
-    } catch ( e:Exception ) {
+    } catch (e:Exception) {
       // when exception occurs we got a mismatch
       this.connection.closeWithError(e.message, Constant.UNEXPECTED_FRAME);
       return;
     }
 
-    switch (frame.id)
-    {
-      case null,
-           EncoderDecoderInfo.BasicDeliver,
-           EncoderDecoderInfo.BasicProperties:
+    switch (frame.id) {
+      case null, EncoderDecoderInfo.BasicDeliver, EncoderDecoderInfo.BasicProperties:
         // ensure incoming message
         if (incomingMessage == null && frame.id != EncoderDecoderInfo.BasicDeliver) {
           throw new Exception("Invalid incoming message package");
@@ -145,9 +141,9 @@ class Channel extends Dispatcher<Dynamic> {
             // push bytes
             incomingMessage.content = Bytes.ofData(incomingMessageBuffer.getBytes().getData());
             // get possible bound callbacks
-            var callbacks:Array<(message:Message)->Void> = this.consumer.get(incomingMessage.fields.consumerTag);
+            var callbacks:Array<(message:Message) -> Void> = this.consumer.get(incomingMessage.fields.consumerTag);
             // call callbacks
-            if ( null != callbacks ) {
+            if (null != callbacks) {
               for (callback in callbacks) {
                 callback(incomingMessage);
               }
@@ -166,34 +162,28 @@ class Channel extends Dispatcher<Dynamic> {
       case EncoderDecoderInfo.ChannelClose:
         throw new Exception("ToDo: Implement channel close handling!");
     }
-    //trace(frame, frame.size?.low, frame.size?.high);
+    // trace(frame, frame.size?.low, frame.size?.high);
   }
 
   /**
    * Method to open the channel
    * @param callback
    */
-  public function open(callback: (channel:Channel)->Void):Void {
-    this.setExpected(
-      EncoderDecoderInfo.ChannelOpenOk,
-      (frame:Dynamic) -> {
-        callback(this);
-      }
-    );
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelOpen, {outOfBand:""});
+  public function open(callback:(Channel) -> Void):Void {
+    this.setExpected(EncoderDecoderInfo.ChannelOpenOk, (frame:Dynamic) -> {
+      callback(this);
+    });
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelOpen, {outOfBand: ""});
   }
 
   /**
    * Close channel
    * @param callback
    */
-  public function close(callback:()->Void):Void {
-    this.setExpected(
-      EncoderDecoderInfo.ChannelCloseOk,
-      (frame:Dynamic) -> {
-        callback();
-      }
-    );
+  public function close(callback:() -> Void):Void {
+    this.setExpected(EncoderDecoderInfo.ChannelCloseOk, (frame:Dynamic) -> {
+      callback();
+    });
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelClose, {
       replyText: 'Goodbye',
       replyCode: Constant.REPLY_SUCCESS,
@@ -207,7 +197,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param config
    * @param callback
    */
-  public function declareQueue(config:Queue, callback:()->Void):Void {
+  public function declareQueue(config:Queue, callback:() -> Void):Void {
     // build arguments dynamic
     var arg:Dynamic = {};
     if (Reflect.hasField(config.arguments, "expires")) {
@@ -246,17 +236,10 @@ class Channel extends Dispatcher<Dynamic> {
       nowait: config.nowait,
     };
 
-    this.setExpected(
-      EncoderDecoderInfo.QueueDeclareOk,
-      (frame:Dynamic) -> {
-        callback();
-      }
-    );
-    this.connection.sendMethod(
-      this.channelId,
-      EncoderDecoderInfo.QueueDeclare,
-      fields
-    );
+    this.setExpected(EncoderDecoderInfo.QueueDeclareOk, (frame:Dynamic) -> {
+      callback();
+    });
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueDeclare, fields);
   }
 
   /**
@@ -264,7 +247,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param config
    * @param callback
    */
-  public function consumeQueue(config:ConsumeQueue, callback:(message:Message)->Void):Void {
+  public function consumeQueue(config:ConsumeQueue, callback:(Message) -> Void):Void {
     // fill argument table
     var argt:Dynamic = {};
     if (Reflect.hasField(config, 'priority')) {
@@ -308,27 +291,20 @@ class Channel extends Dispatcher<Dynamic> {
       Reflect.setField(fields, 'nowait', false);
     }
     // set expected frame and callback
-    this.setExpected(
-      EncoderDecoderInfo.BasicConsumeOk,
-      (frame:Dynamic) -> {
-        // get bound callbacks
-        var a:Array<(message:Message)->Void> = this.consumer.get(frame.fields.consumerTag);
-        // handle no callback existing
-        if ( a == null ) {
-          a = new Array<(message:Message)->Void>();
-        }
-        // push back callback
-        a.push(callback);
-        // write back
-        this.consumer.set(frame.fields.consumerTag, a);
+    this.setExpected(EncoderDecoderInfo.BasicConsumeOk, (frame:Dynamic) -> {
+      // get bound callbacks
+      var a:Array<(Message) -> Void> = this.consumer.get(frame.fields.consumerTag);
+      // handle no callback existing
+      if (a == null) {
+        a = new Array<(Message) -> Void>();
       }
-    );
+      // push back callback
+      a.push(callback);
+      // write back
+      this.consumer.set(frame.fields.consumerTag, a);
+    });
     // send method
-    this.connection.sendMethod(
-      this.channelId,
-      EncoderDecoderInfo.BasicConsume,
-      fields
-    );
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicConsume, fields);
   }
 
   /**
@@ -378,14 +354,7 @@ class Channel extends Dispatcher<Dynamic> {
       clusterId: null
     }
     // finally send message
-    this.connection.sendMessage(
-      this.channelId,
-      EncoderDecoderInfo.BasicPublish,
-      methodFields,
-      EncoderDecoderInfo.BasicProperties,
-      propertyFields,
-      message
-    );
+    this.connection.sendMessage(this.channelId, EncoderDecoderInfo.BasicPublish, methodFields, EncoderDecoderInfo.BasicProperties, propertyFields, message);
   }
 
   /**
@@ -394,28 +363,20 @@ class Channel extends Dispatcher<Dynamic> {
    * @param allUpTo
    */
   public function ack(message:Message, allUpTo:Bool = false):Void {
-    this.connection.sendMethod(
-      this.channelId,
-      EncoderDecoderInfo.BasicAck,
-      {
-        deliveryTag: message.fields.deliveryTag,
-        multiple: allUpTo,
-      }
-    );
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicAck, {
+      deliveryTag: message.fields.deliveryTag,
+      multiple: allUpTo,
+    });
   }
 
   /**
    * Acknowledge all messages
    */
   public function ackAll():Void {
-    this.connection.sendMethod(
-      this.channelId,
-      EncoderDecoderInfo.BasicAck,
-      {
-        deliveryTag: 0,
-        multiple: true,
-      }
-    );
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicAck, {
+      deliveryTag: 0,
+      multiple: true,
+    });
   }
 
   /**
@@ -425,15 +386,11 @@ class Channel extends Dispatcher<Dynamic> {
    * @param requeue
    */
   public function nack(message:Message, allUpTo:Bool = false, requeue:Bool = false):Void {
-    this.connection.sendMethod(
-      this.channelId,
-      EncoderDecoderInfo.BasicNack,
-      {
-        deliveryTag: message.fields.deliveryTag,
-        multiple: allUpTo,
-        requeue: requeue,
-      }
-    );
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicNack, {
+      deliveryTag: message.fields.deliveryTag,
+      multiple: allUpTo,
+      requeue: requeue,
+    });
   }
 
   /**
@@ -441,15 +398,11 @@ class Channel extends Dispatcher<Dynamic> {
    * @param requeue
    */
   public function nackAll(requeue:Bool = false):Void {
-    this.connection.sendMethod(
-      this.channelId,
-      EncoderDecoderInfo.BasicNack,
-      {
-        deliveryTag: 0,
-        multiple: true,
-        requeue: requeue,
-      }
-    );
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicNack, {
+      deliveryTag: 0,
+      multiple: true,
+      requeue: requeue,
+    });
   }
 
   /**
@@ -458,14 +411,10 @@ class Channel extends Dispatcher<Dynamic> {
    * @param requeue
    */
   public function reject(message:Message, requeue:Bool = false):Void {
-    this.connection.sendMethod(
-      this.channelId,
-      EncoderDecoderInfo.BasicReject,
-      {
-        deliveryTag: message.fields.deliveryTag,
-        requeue: requeue,
-      }
-    );
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicReject, {
+      deliveryTag: message.fields.deliveryTag,
+      requeue: requeue,
+    });
   }
 
   /**

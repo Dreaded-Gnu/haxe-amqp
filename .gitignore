@@ -2,6 +2,8 @@
 node_modules
 tutorial/hello_world/sender
 tutorial/hello_world/receiver
+tutorial/work_queues/newtask
+tutorial/work_queues/worker
 spec/*.json
 pages
 bin

@@ -17,18 +17,17 @@ class Channel0 extends Channel {
   override public function accept(frame:Dynamic):Void {
     try {
       var expected:Int = this.expectedFrame.length > 0 ? this.expectedFrame.shift() : 0;
-      var callback:(field:Dynamic)->Void = this.expectedCallback.shift();
+      var callback:(field:Dynamic) -> Void = this.expectedCallback.shift();
       // validate frame against expected
       this.validateExpectedFrame(expected, frame);
       // run expected callback if set
-      if (callback != null)
-      {
+      if (callback != null) {
         // execute callback
         callback(frame);
         // skip rest
         return;
       }
-    } catch ( e:Exception ) {
+    } catch (e:Exception) {
       // when exception occurs we got a mismatch
       this.connection.closeWithError(e.message, Constant.UNEXPECTED_FRAME);
       return;
@@ -57,7 +56,7 @@ class Channel0 extends Channel {
   /**
    * Override of open function
    */
-  override public function open(callback: (channel:Channel)->Void) {}
+  override public function open(callback:(channel:Channel) -> Void) {}
 
   /**
    * Shutdown method

@@ -1,13 +1,12 @@
-package tutorial.hello_world;
+package tutorial.work_queues;
 
 import amqp.message.Message;
 import amqp.Channel;
 import amqp.Connection;
 import amqp.connection.Config;
 
-class Receiver {
-  private static inline var QUEUE:String = 'hello';
-  private static inline var MESSAGE:String = 'hello world!';
+class Worker {
+  private static inline var QUEUE:String = 'task_queue';
 
   /**
    * Main entry point
@@ -30,13 +29,12 @@ class Receiver {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE,}, () -> {
+        channel.declareQueue({queue: QUEUE, durable: true,}, () -> {
           // consume queue
           channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
             if (message != null) {
-              if (message.content != null) {
-                trace('Received "${message.content.toString()}"');
-              }
+              trace('Received "${message.content.toString()}"');
+              Sys.sleep(message.content.length);
               channel.ack(message);
             }
           });

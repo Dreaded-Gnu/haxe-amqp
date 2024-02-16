@@ -1,4 +1,4 @@
-package tutorial.hello_world;
+package tutorial.work_queues;
 
 import haxe.io.Encoding;
 import amqp.helper.Bytes;
@@ -6,14 +6,19 @@ import amqp.Channel;
 import amqp.Connection;
 import amqp.connection.Config;
 
-class Sender {
-  private static inline var QUEUE:String = 'hello';
-  private static inline var MESSAGE:String = 'hello world!';
+class NewTask {
+  private static inline var QUEUE:String = 'task_queue';
 
   /**
    * Main entry point
    */
   public static function main() {
+    var args:Array<String> = Sys.args();
+    var message:String = "Hello world";
+    // check for argument length
+    if (0 < args.length) {
+      message = args.join(' ');
+    }
     // create connection instance
     var cfg:Config = new Config();
     // create connection instance
@@ -31,10 +36,10 @@ class Sender {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE}, () -> {
+        channel.declareQueue({queue: QUEUE, durable: true,}, () -> {
           // publish a message
-          channel.basicPublish('', 'hello', Bytes.ofString(MESSAGE, Encoding.UTF8));
-          trace(' [x] Sent ${MESSAGE}');
+          channel.basicPublish('', 'hello', Bytes.ofString(message, Encoding.UTF8), {persistant: true,});
+          trace(' [x] Sent ${message}');
           // close channel
           channel.close(() -> {
             trace("closing connection after channel was closed!");

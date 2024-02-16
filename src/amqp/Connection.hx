@@ -197,7 +197,7 @@ class Connection extends Dispatcher<Dynamic> {
   /**
    * Receive acceptor polling every second for new data
    */
-   private function receiveAcceptor():Void {
+  private function receiveAcceptor():Void {
     // fetch data from output buffer
     var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
     // flush out
@@ -256,7 +256,7 @@ class Connection extends Dispatcher<Dynamic> {
    * Connect to amqp with performing handshake
    * @param callback
    */
-  public function connect(callback:()->Void):Void {
+  public function connect(callback:() -> Void):Void {
     // generate socket
     if (this.config.isSecure) {
       this.sock = new sys.ssl.Socket();
@@ -360,7 +360,7 @@ class Connection extends Dispatcher<Dynamic> {
    * @param callback
    * @return Channel
    */
-  public function channel(callback: (channel:Channel)->Void):Channel {
+  public function channel(callback:(Channel) -> Void):Channel {
     // get next id
     var chlId:Int = this.nextChannelId++;
     // instanciate new channel
@@ -463,7 +463,7 @@ class Connection extends Dispatcher<Dynamic> {
     var written:Int = 0;
     while (offset < content.length) {
       // calculate new end
-      var end:Int = offset+maxBody;
+      var end:Int = offset + maxBody;
       // cap end
       if (end > content.length) {
         end = content.length;
@@ -476,7 +476,7 @@ class Connection extends Dispatcher<Dynamic> {
       // increase written
       written += bodyFrame.length;
       // increase offset
-      offset+=maxBody;
+      offset += maxBody;
     }
     return written;
   }

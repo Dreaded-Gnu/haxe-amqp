@@ -12,4 +12,4 @@ typedef Message = {
   @:optional var size:Int64;
   @:optional var remaining:Int64;
   @:optional var content:Bytes;
-};
+}
