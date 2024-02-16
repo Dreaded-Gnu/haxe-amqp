@@ -12,7 +12,7 @@ class NewTask {
   /**
    * Main entry point
    */
-  public static function main() {
+  public static function main():Void {
     var args:Array<String> = Sys.args();
     var message:String = "Hello world";
     // check for argument length

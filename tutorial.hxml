@@ -23,3 +23,13 @@
 -cp tutorial/work_queues
 -main tutorial.work_queues.Worker
 -cpp tutorial/work_queues/worker
+--next
+
+-cp tutorial/publish_subscribe
+-main tutorial.publish_subscribe.EmitLog
+-cpp tutorial/publish_subscribe/emitlog
+--next
+
+-cp tutorial/publish_subscribe
+-main tutorial.publish_subscribe.ReceiveLog
+-cpp tutorial/publish_subscribe/receivelog

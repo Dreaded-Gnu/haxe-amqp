@@ -11,7 +11,7 @@ class Worker {
   /**
    * Main entry point
    */
-  public static function main() {
+  public static function main():Void {
     // create connection instance
     var cfg:Config = new Config();
     // create connection instance
