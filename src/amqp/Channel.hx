@@ -1,5 +1,8 @@
 package amqp;
 
+import haxe.Int64;
+import amqp.helper.BytesOutput;
+import amqp.message.Message;
 import amqp.channel.type.ConsumeQueue;
 import haxe.io.Encoding;
 import amqp.helper.Bytes;
@@ -22,6 +25,9 @@ class Channel extends Dispatcher<Dynamic> {
   private var state:ChannelState;
   private var expectedFrame:Array<Int>;
   private var expectedCallback:Array<(Dynamic)->Void>;
+  private var consumer:Map<String, Array<(message:Message)->Void>>;
+  private var incomingMessage:Message;
+  private var incomingMessageBuffer:BytesOutput;
 
   /**
    * Helper to validate expected frame
@@ -55,6 +61,9 @@ class Channel extends Dispatcher<Dynamic> {
     this.state = ChannelStateInit;
     this.expectedCallback = new Array<(frame:Dynamic)->Void>();
     this.expectedFrame = new Array<Int>();
+    this.consumer = new Map<String, Array<(message:Message)->Void>>();
+    this.incomingMessage = null;
+    this.incomingMessageBuffer = new BytesOutput();
     // register event handlers
     this.register(EVENT_ACK);
     this.register(EVENT_NACK);
@@ -98,7 +107,66 @@ class Channel extends Dispatcher<Dynamic> {
       this.connection.closeWithError(e.message, Constant.UNEXPECTED_FRAME);
       return;
     }
-    trace(frame, frame.size?.low, frame.size?.high);
+
+    switch (frame.id)
+    {
+      case null,
+           EncoderDecoderInfo.BasicDeliver,
+           EncoderDecoderInfo.BasicProperties:
+        // ensure incoming message
+        if (incomingMessage == null && frame.id != EncoderDecoderInfo.BasicDeliver) {
+          throw new Exception("Invalid incoming message package");
+        }
+        // initialize incoming message property
+        if (incomingMessage == null) {
+          incomingMessage = {};
+        }
+        // handle basic deliver
+        if (frame.id == EncoderDecoderInfo.BasicDeliver) {
+          incomingMessage.fields = frame.fields;
+        } else if (frame.id == EncoderDecoderInfo.BasicProperties) {
+          incomingMessage.properties = frame.fields;
+          incomingMessage.size = incomingMessage.remaining = frame.size;
+        } else {
+          // cast content to bytes instance
+          var content:Bytes = cast(frame.content, Bytes);
+          // get size
+          var size:Int64 = Int64.ofInt(content.length);
+          // decrease remaining
+          incomingMessage.remaining -= size;
+          // handle to much data send by server
+          if (incomingMessage.remaining < 0) {
+            throw new Exception("Received to much data for message!");
+          }
+          // write to buffer
+          incomingMessageBuffer.writeBytes(content, 0, content.length);
+          // handle remaining 0 => we're done
+          if (incomingMessage.remaining == 0) {
+            // push bytes
+            incomingMessage.content = Bytes.ofData(incomingMessageBuffer.getBytes().getData());
+            // get possible bound callbacks
+            var callbacks:Array<(message:Message)->Void> = this.consumer.get(incomingMessage.fields.consumerTag);
+            // call callbacks
+            if ( null != callbacks ) {
+              for (callback in callbacks) {
+                callback(incomingMessage);
+              }
+            }
+            // reset incoming message and flush out buffer
+            incomingMessage = null;
+            incomingMessageBuffer.flush();
+          }
+        }
+      case EncoderDecoderInfo.BasicAck:
+        this.trigger(EVENT_ACK, frame.fields);
+      case EncoderDecoderInfo.BasicNack:
+        this.trigger(EVENT_NACK, frame.fields);
+      case EncoderDecoderInfo.BasicCancel:
+        this.trigger(EVENT_CANCEL, frame.fields);
+      case EncoderDecoderInfo.ChannelClose:
+        throw new Exception("ToDo: Implement channel close handling!");
+    }
+    //trace(frame, frame.size?.low, frame.size?.high);
   }
 
   /**
@@ -196,7 +264,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param config
    * @param callback
    */
-  public function consumeQueue(config:ConsumeQueue, callback:(message:Dynamic)->Void):Void {
+  public function consumeQueue(config:ConsumeQueue, callback:(message:Message)->Void):Void {
     // fill argument table
     var argt:Dynamic = {};
     if (Reflect.hasField(config, 'priority')) {
@@ -243,8 +311,16 @@ class Channel extends Dispatcher<Dynamic> {
     this.setExpected(
       EncoderDecoderInfo.BasicConsumeOk,
       (frame:Dynamic) -> {
-        trace(frame);
-        trace("bind callback!");
+        // get bound callbacks
+        var a:Array<(message:Message)->Void> = this.consumer.get(frame.fields.consumerTag);
+        // handle no callback existing
+        if ( a == null ) {
+          a = new Array<(message:Message)->Void>();
+        }
+        // push back callback
+        a.push(callback);
+        // write back
+        this.consumer.set(frame.fields.consumerTag, a);
       }
     );
     // send method
@@ -317,12 +393,12 @@ class Channel extends Dispatcher<Dynamic> {
    * @param message
    * @param allUpTo
    */
-  public function ack(message:Dynamic, allUpTo:Bool = false):Void {
+  public function ack(message:Message, allUpTo:Bool = false):Void {
     this.connection.sendMethod(
       this.channelId,
       EncoderDecoderInfo.BasicAck,
       {
-        deliveryTag: message.fields.deliveryTag0,
+        deliveryTag: message.fields.deliveryTag,
         multiple: allUpTo,
       }
     );
@@ -348,7 +424,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param allUpTo
    * @param requeue
    */
-  public function nack(message:Dynamic, allUpTo:Bool = false, requeue:Bool = false):Void {
+  public function nack(message:Message, allUpTo:Bool = false, requeue:Bool = false):Void {
     this.connection.sendMethod(
       this.channelId,
       EncoderDecoderInfo.BasicNack,
@@ -381,7 +457,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param message
    * @param requeue
    */
-  public function reject(message:Dynamic, requeue:Bool = false):Void {
+  public function reject(message:Message, requeue:Bool = false):Void {
     this.connection.sendMethod(
       this.channelId,
       EncoderDecoderInfo.BasicReject,

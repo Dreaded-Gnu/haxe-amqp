@@ -15,8 +15,7 @@ class BytesOutput extends haxe.io.BytesOutput {
    * Write int64 implementation
    * @param v
    */
-  public function writeInt64(x:Int):Void {
-    var v:Int64 = Int64.ofInt(x);
+  public function writeInt64(v:Int64):Void {
     if (bigEndian) {
       writeByte(v.high >>> 24);
       writeByte((v.high >> 16) & 0xFF);

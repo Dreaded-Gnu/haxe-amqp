@@ -1,7 +1,6 @@
 package tutorial.hello_world;
 
-import haxe.io.Encoding;
-import amqp.helper.Bytes;
+import amqp.message.Message;
 import amqp.channel.config.Queue;
 import amqp.Channel;
 import amqp.Connection;
@@ -34,12 +33,12 @@ class Receiver {
         // declare queue
         channel.declareQueue(queueConfig, () -> {
           // consume queue
-          channel.consumeQueue({queue: QUEUE}, (message:Dynamic) -> {
+          channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
             if (message != null) {
-              trace(message.content.toString());
+              if (message.content != null) {
+                trace('Received "${message.content.toString()}"');
+              }
               channel.ack(message);
-            } else {
-              trace('Consumer cancelled by server!');
             }
           });
         });

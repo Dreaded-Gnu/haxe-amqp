@@ -141,10 +141,11 @@ class GenerateDefinition {
         return 'Std.isOfType(val, Bool)';
       case 'octet',
            'short',
-           'long',
-           'longlong',
-           'timestamp':
+           'long':
         return "(Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val)";
+      case 'longlong',
+           'timestamp':
+        return "Int64.isInt64(val)";
       case 'shortstr':
         return "Std.isOfType(val, String) && cast(val, String).length < 256";
       case 'longstr':
@@ -417,9 +418,7 @@ class GenerateDefinition {
     output.writeByte(amqp.helper.protocol.Constant.FRAME_METHOD);
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
-    output.writeInt32(" + m.id + ");
-    //output.writeInt16(" + m.clazzId + ");
-    //output.writeInt16(" + m.methodId + ");";
+    output.writeInt32(" + m.id + ");";
 
     for ( arg in cast(m.args, Array<Dynamic>) ) {
       // Flush any collected bits before doing a new field
@@ -428,6 +427,7 @@ class GenerateDefinition {
     output.writeByte(bits);";
         bitsInARow = 0;
       }
+
 
       switch (arg.type) {
         case 'octet':
@@ -442,8 +442,8 @@ class GenerateDefinition {
           method += CheckAssignArg(arg);
           method += "
     output.writeInt32(val);";
-        case 'longlong':
-        case 'timestamp':
+        case 'longlong',
+             'timestamp':
           method += CheckAssignArg(arg);
           method += "
     output.writeInt64(val);";
@@ -882,6 +882,7 @@ class Constant {
     var file:String = "package amqp.helper.protocol;
 
 import haxe.Json;
+import haxe.Int64;
 import format.tools.BitsInput;
 import format.tools.BitsOutput;
 import amqp.Codec;

@@ -1,6 +1,7 @@
 package amqp.helper.protocol;
 
 import haxe.Json;
+import haxe.Int64;
 import format.tools.BitsInput;
 import format.tools.BitsOutput;
 import amqp.Codec;
@@ -177,8 +178,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932181);
-    //output.writeInt16(60);
-    //output.writeInt16(21);
     val = fields.consumerTag;
     if (val == null) val = null;
     output.writeByte(consumerTag_len);
@@ -230,8 +229,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932190);
-    //output.writeInt16(60);
-    //output.writeInt16(30);
     val = fields.consumerTag;
     if (val == null) val = null;
     output.writeByte(consumerTag_len);
@@ -282,8 +279,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932270);
-    //output.writeInt16(60);
-    //output.writeInt16(110);
     val = fields.requeue;
     if (val == null) {
       val = false;
@@ -390,8 +385,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621480);
-    //output.writeInt16(40);
-    //output.writeInt16(40);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -456,8 +449,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5898260);
-    //output.writeInt16(90);
-    //output.writeInt16(20);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -520,8 +511,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932200);
-    //output.writeInt16(60);
-    //output.writeInt16(40);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -592,8 +581,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276831);
-    //output.writeInt16(50);
-    //output.writeInt16(31);
     val = fields.messageCount;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"messageCount\"");
@@ -650,8 +637,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276830);
-    //output.writeInt16(50);
-    //output.writeInt16(30);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -707,8 +692,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5898261);
-    //output.writeInt16(90);
-    //output.writeInt16(21);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -745,8 +728,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1966091);
-    //output.writeInt16(30);
-    //output.writeInt16(11);
     val = fields.ticket;
     if (val == null) {
       val = 1;
@@ -788,8 +769,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621491);
-    //output.writeInt16(40);
-    //output.writeInt16(51);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -826,8 +805,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1310740);
-    //output.writeInt16(20);
-    //output.writeInt16(20);
     val = fields.active;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"active\"");
@@ -878,8 +855,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655391);
-    //output.writeInt16(10);
-    //output.writeInt16(31);
     val = fields.channelMax;
     if (val == null) {
       val = 0;
@@ -935,8 +910,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5898271);
-    //output.writeInt16(90);
-    //output.writeInt16(31);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -981,8 +954,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655380);
-    //output.writeInt16(10);
-    //output.writeInt16(20);
     val = fields.challenge;
     if (val == null) val = null;
     len = cast(val, String).length;
@@ -1022,8 +993,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932271);
-    //output.writeInt16(60);
-    //output.writeInt16(111);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1058,8 +1027,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621471);
-    //output.writeInt16(40);
-    //output.writeInt16(31);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1094,8 +1061,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5898251);
-    //output.writeInt16(90);
-    //output.writeInt16(11);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1130,8 +1095,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655421);
-    //output.writeInt16(10);
-    //output.writeInt16(61);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1168,8 +1131,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932260);
-    //output.writeInt16(60);
-    //output.writeInt16(100);
     val = fields.requeue;
     if (val == null) {
       val = false;
@@ -1276,8 +1237,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621470);
-    //output.writeInt16(40);
-    //output.writeInt16(30);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -1342,8 +1301,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5570571);
-    //output.writeInt16(85);
-    //output.writeInt16(11);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1378,8 +1335,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932171);
-    //output.writeInt16(60);
-    //output.writeInt16(11);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1431,8 +1386,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621460);
-    //output.writeInt16(40);
-    //output.writeInt16(20);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -1497,8 +1450,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5898270);
-    //output.writeInt16(90);
-    //output.writeInt16(30);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1535,8 +1486,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5570570);
-    //output.writeInt16(85);
-    //output.writeInt16(10);
     val = fields.nowait;
     if (val == null) {
       val = false;
@@ -1583,8 +1532,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1310741);
-    //output.writeInt16(20);
-    //output.writeInt16(21);
     val = fields.active;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"active\"");
@@ -1635,8 +1582,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932170);
-    //output.writeInt16(60);
-    //output.writeInt16(10);
     val = fields.prefetchSize;
     if (val == null) {
       val = 0;
@@ -1714,8 +1659,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276840);
-    //output.writeInt16(50);
-    //output.writeInt16(40);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -1799,8 +1742,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1310731);
-    //output.writeInt16(20);
-    //output.writeInt16(11);
     val = fields.channelId;
     if (val == null) val = "";
     len = cast(val, String).length;
@@ -1851,8 +1792,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932191);
-    //output.writeInt16(60);
-    //output.writeInt16(31);
     val = fields.consumerTag;
     if (val == null) val = null;
     output.writeByte(consumerTag_len);
@@ -1895,8 +1834,13 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932250);
-    //output.writeInt16(60);
-    //output.writeInt16(90);
+    val = fields.deliveryTag;
+    if (val == null) {
+      throw new haxe.Exception("Missing value for mandatory field \"deliveryTag\"");
+    } else if (!(Int64.isInt64(val))) {
+      throw new haxe.Exception("Field \"deliveryTag\" is the wrong type; must be a number (but not NaN)");
+    }
+    output.writeInt64(val);
     val = fields.requeue;
     if (val == null) {
       val = true;
@@ -1941,8 +1885,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655411);
-    //output.writeInt16(10);
-    //output.writeInt16(51);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -1979,8 +1921,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276841);
-    //output.writeInt16(50);
-    //output.writeInt16(41);
     val = fields.messageCount;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"messageCount\"");
@@ -2039,8 +1979,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1310760);
-    //output.writeInt16(20);
-    //output.writeInt16(40);
     val = fields.replyCode;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"replyCode\"");
@@ -2145,12 +2083,17 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932220);
-    //output.writeInt16(60);
-    //output.writeInt16(60);
     val = fields.consumerTag;
     if (val == null) val = null;
     output.writeByte(consumerTag_len);
     output.writeString(val, haxe.io.Encoding.UTF8);
+    val = fields.deliveryTag;
+    if (val == null) {
+      throw new haxe.Exception("Missing value for mandatory field \"deliveryTag\"");
+    } else if (!(Int64.isInt64(val))) {
+      throw new haxe.Exception("Field \"deliveryTag\" is the wrong type; must be a number (but not NaN)");
+    }
+    output.writeInt64(val);
     val = fields.redelivered;
     if (val == null) {
       val = false;
@@ -2214,8 +2157,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1310730);
-    //output.writeInt16(20);
-    //output.writeInt16(10);
     val = fields.outOfBand;
     if (val == null) val = "";
     output.writeByte(outOfBand_len);
@@ -2258,8 +2199,13 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932240);
-    //output.writeInt16(60);
-    //output.writeInt16(80);
+    val = fields.deliveryTag;
+    if (val == null) {
+      val = 0;
+    } else if (!(Int64.isInt64(val))) {
+      throw new haxe.Exception("Field \"deliveryTag\" is the wrong type; must be a number (but not NaN)");
+    }
+    output.writeInt64(val);
     val = fields.multiple;
     if (val == null) {
       val = false;
@@ -2315,8 +2261,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655420);
-    //output.writeInt16(10);
-    //output.writeInt16(60);
     val = fields.reason;
     if (val == null) val = "";
     output.writeByte(reason_len);
@@ -2376,8 +2320,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1966090);
-    //output.writeInt16(30);
-    //output.writeInt16(10);
     val = fields.realm;
     if (val == null) val = "/data";
     output.writeByte(realm_len);
@@ -2506,8 +2448,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276810);
-    //output.writeInt16(50);
-    //output.writeInt16(10);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -2652,8 +2592,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276850);
-    //output.writeInt16(50);
-    //output.writeInt16(50);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -2708,8 +2646,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(1310761);
-    //output.writeInt16(20);
-    //output.writeInt16(41);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -2798,8 +2734,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932180);
-    //output.writeInt16(60);
-    //output.writeInt16(20);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -2887,8 +2821,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276851);
-    //output.writeInt16(50);
-    //output.writeInt16(51);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -2929,8 +2861,13 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932280);
-    //output.writeInt16(60);
-    //output.writeInt16(120);
+    val = fields.deliveryTag;
+    if (val == null) {
+      val = 0;
+    } else if (!(Int64.isInt64(val))) {
+      throw new haxe.Exception("Field \"deliveryTag\" is the wrong type; must be a number (but not NaN)");
+    }
+    output.writeInt64(val);
     val = fields.multiple;
     if (val == null) {
       val = false;
@@ -2995,8 +2932,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655401);
-    //output.writeInt16(10);
-    //output.writeInt16(41);
     val = fields.knownHosts;
     if (val == null) val = "";
     output.writeByte(knownHosts_len);
@@ -3035,8 +2970,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276821);
-    //output.writeInt16(50);
-    //output.writeInt16(21);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -3071,8 +3004,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(5898250);
-    //output.writeInt16(90);
-    //output.writeInt16(10);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -3142,8 +3073,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932210);
-    //output.writeInt16(60);
-    //output.writeInt16(50);
     val = fields.replyCode;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"replyCode\"");
@@ -3214,8 +3143,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655410);
-    //output.writeInt16(10);
-    //output.writeInt16(50);
     val = fields.replyCode;
     if (val == null) {
       throw new haxe.Exception("Missing value for mandatory field \"replyCode\"");
@@ -3281,8 +3208,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655390);
-    //output.writeInt16(10);
-    //output.writeInt16(30);
     val = fields.channelMax;
     if (val == null) {
       val = 0;
@@ -3362,8 +3287,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655400);
-    //output.writeInt16(10);
-    //output.writeInt16(40);
     val = fields.virtualHost;
     if (val == null) val = "/";
     output.writeByte(virtualHost_len);
@@ -3431,8 +3354,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932230);
-    //output.writeInt16(60);
-    //output.writeInt16(70);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -3499,8 +3420,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932232);
-    //output.writeInt16(60);
-    //output.writeInt16(72);
     val = fields.clusterId;
     if (val == null) val = "";
     output.writeByte(clusterId_len);
@@ -3539,8 +3458,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621461);
-    //output.writeInt16(40);
-    //output.writeInt16(21);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -3624,8 +3541,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655371);
-    //output.writeInt16(10);
-    //output.writeInt16(11);
     output.writeBytes(clientProperties_encoded, 0, clientProperties_encoded.length);
     val = fields.mechanism;
     if (val == null) val = "PLAIN";
@@ -3689,8 +3604,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276811);
-    //output.writeInt16(50);
-    //output.writeInt16(11);
     val = fields.queue;
     if (val == null) val = null;
     output.writeByte(queue_len);
@@ -3753,8 +3666,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655381);
-    //output.writeInt16(10);
-    //output.writeInt16(21);
     val = fields.response;
     if (val == null) val = null;
     len = cast(val, String).length;
@@ -3794,8 +3705,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621451);
-    //output.writeInt16(40);
-    //output.writeInt16(11);
     output.writeByte(amqp.helper.protocol.Constant.FRAME_END);
     // hacky push in size
     var sizeOutput:BytesOutput = new BytesOutput();
@@ -3885,8 +3794,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(2621450);
-    //output.writeInt16(40);
-    //output.writeInt16(10);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -4019,8 +3926,13 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3932231);
-    //output.writeInt16(60);
-    //output.writeInt16(71);
+    val = fields.deliveryTag;
+    if (val == null) {
+      throw new haxe.Exception("Missing value for mandatory field \"deliveryTag\"");
+    } else if (!(Int64.isInt64(val))) {
+      throw new haxe.Exception("Field \"deliveryTag\" is the wrong type; must be a number (but not NaN)");
+    }
+    output.writeInt64(val);
     val = fields.redelivered;
     if (val == null) {
       val = false;
@@ -4142,8 +4054,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(3276820);
-    //output.writeInt16(50);
-    //output.writeInt16(20);
     val = fields.ticket;
     if (val == null) {
       val = 0;
@@ -4249,8 +4159,6 @@ class EncoderDecoderInfo {
     output.writeInt16(channel);
     output.writeInt32(0); // space for final size at the end
     output.writeInt32(655370);
-    //output.writeInt16(10);
-    //output.writeInt16(10);
     val = fields.versionMajor;
     if (val == null) {
       val = 0;
@@ -4384,7 +4292,7 @@ class EncoderDecoderInfo {
     }
     val = fields.timestamp;
     if (val != null) {
-      if ((Std.isOfType(val, Int) || Std.isOfType(val, Float)) && !Math.isNaN(val)) {
+      if (Int64.isInt64(val)) {
         varyingSize += 8;
       } else {
         throw new haxe.Exception('Field "timestamp" is the wrong type; must be a number (but not NaN)');
