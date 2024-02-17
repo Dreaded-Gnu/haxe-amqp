@@ -1,5 +1,6 @@
 package amqp;
 
+import amqp.channel.type.DeclareExchange;
 import amqp.channel.type.BasicQos;
 import haxe.Int64;
 import amqp.helper.BytesOutput;
@@ -241,6 +242,36 @@ class Channel extends Dispatcher<Dynamic> {
       callback();
     });
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueDeclare, fields);
+  }
+
+  /**
+   * Declare exchange
+   * @param config
+   * @param callback
+   */
+  public function declareExchange(config:DeclareExchange, callback:()->Void):Void {
+    // build arguments dynamic
+    var arg:Dynamic = {};
+    if (Reflect.hasField(config, 'alternateExchange')) {
+      Reflect.setField(arg, 'alternate-exchange', config.alternateExchange);
+    }
+    var fields:Dynamic = {
+      exchange: config.exchange,
+      ticket: config.ticket,
+      type: config.type,
+      passive: config.passive,
+      durable: config.durable,
+      autoDelete: config.autoDelete,
+      internal: config.internal,
+      nowait: config.nowait,
+      arguments: arg
+    };
+    // set expected
+    this.setExpected(EncoderDecoderInfo.ExchangeDeclareOk, (frame:Dynamic)-> {
+      callback();
+    });
+    // send method
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeDeclare, fields);
   }
 
   /**
