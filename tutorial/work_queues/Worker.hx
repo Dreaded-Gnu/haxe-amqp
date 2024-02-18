@@ -29,7 +29,7 @@ class Worker {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE, durable: true,}, () -> {
+        channel.declareQueue({queue: QUEUE, durable: true,}, (frame:Dynamic) -> {
           // only one message at the time
           channel.basicQos({prefetchCount: 1,}, () -> {
             // consume queue

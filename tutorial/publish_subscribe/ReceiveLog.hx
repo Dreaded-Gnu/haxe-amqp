@@ -1,8 +1,6 @@
 package tutorial.publish_subscribe;
 
 import amqp.message.Message;
-import haxe.io.Encoding;
-import amqp.helper.Bytes;
 import amqp.Channel;
 import amqp.Connection;
 import amqp.connection.Config;

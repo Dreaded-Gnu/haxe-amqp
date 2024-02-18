@@ -31,7 +31,7 @@ class Sender {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE}, () -> {
+        channel.declareQueue({queue: QUEUE}, (frame:Dynamic) -> {
           // publish a message
           channel.basicPublish('', QUEUE, Bytes.ofString(MESSAGE, Encoding.UTF8));
           trace(' [x] Sent ${MESSAGE}');
