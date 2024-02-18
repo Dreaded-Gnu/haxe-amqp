@@ -25,7 +25,7 @@ class Connection extends Dispatcher<Dynamic> {
   public static inline var EVENT_UNBLOCKED:Event = "unblocked";
 
   private static inline var SINGLE_CHUNK_THRESHOLD:Int = 2048;
-  private static inline var ACCEPTOR_TIMEOUT:Int = 1000;
+  private static inline var ACCEPTOR_TIMEOUT:Int = 250;
 
   public var config(default, null):Config;
   public var sock(default, null):sys.net.Socket;

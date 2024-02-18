@@ -1,5 +1,6 @@
 package amqp;
 
+import amqp.channel.type.BindQueue;
 import amqp.channel.type.DeclareExchange;
 import amqp.channel.type.BasicQos;
 import haxe.Int64;
@@ -199,7 +200,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param config
    * @param callback
    */
-  public function declareQueue(config:Queue, callback:() -> Void):Void {
+  public function declareQueue(config:Queue, callback:(data:Dynamic) -> Void):Void {
     // build arguments dynamic
     var arg:Dynamic = {};
     if (Reflect.hasField(config.arguments, "expires")) {
@@ -239,9 +240,21 @@ class Channel extends Dispatcher<Dynamic> {
     };
 
     this.setExpected(EncoderDecoderInfo.QueueDeclareOk, (frame:Dynamic) -> {
-      callback();
+      callback(frame);
     });
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueDeclare, fields);
+  }
+
+  /**
+   * Bind queue
+   * @param options
+   * @param callback
+   */
+  public function bindQueue(options:BindQueue, callback:()->Void):Void {
+    this.setExpected(EncoderDecoderInfo.QueueBindOk, (frame:Dynamic)-> {
+      callback();
+    });
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueBind, options);
   }
 
   /**

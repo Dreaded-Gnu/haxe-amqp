@@ -36,7 +36,7 @@ class NewTask {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE, durable: true,}, () -> {
+        channel.declareQueue({queue: QUEUE, durable: true,}, (frame:Dynamic) -> {
           // publish a message
           channel.basicPublish('', QUEUE, Bytes.ofString(message, Encoding.UTF8), {persistant: true,});
           trace(' [x] Sent ${message}');

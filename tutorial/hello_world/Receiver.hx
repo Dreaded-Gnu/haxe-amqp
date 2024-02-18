@@ -30,7 +30,7 @@ class Receiver {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE,}, () -> {
+        channel.declareQueue({queue: QUEUE,}, (frame:Dynamic) -> {
           // consume queue
           channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
             if (message != null) {
