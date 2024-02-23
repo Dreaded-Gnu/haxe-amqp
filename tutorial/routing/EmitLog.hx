@@ -35,7 +35,7 @@ class EmitLog {
         // declare queue
         channel.declareExchange({exchange: 'direct_logs', type: 'direct'}, () -> {
           // publish a message
-          channel.basicPublish('direct_logs', severity, Bytes.ofString(message, Encoding.UTF8), {persistant: true,});
+          channel.basicPublish('direct_logs', severity, Bytes.ofString(message, Encoding.UTF8));
           trace(' [x] Sent ${message} on severity ${severity}');
           // close channel
           channel.close(() -> {
