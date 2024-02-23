@@ -641,16 +641,15 @@ class GenerateDefinition {
     var method:String = "
   public static function " + m.decoder + "(buffer:BytesInput):Dynamic {
     var flags:Int;
-    var offset:Int = 2;
     var val:Dynamic;
     var len:Int;
 
-    var bytes:Bytes = Bytes.ofData(buffer.readAll().getData());
-
-    flags = bytes.getUInt16(0);
+    buffer.bigEndian = true;
+    flags = buffer.readUInt16();
     if (flags == 0) {
       return {};
     }
+
     " + FieldsDecl(m.args);
     for (i in 0...args.length) {
       var p:Dynamic = Argument(args[i]);
@@ -664,38 +663,31 @@ class GenerateDefinition {
         switch(p.type) {
           case 'octet':
             method += "
-      val = bytes.get(offset);
-      offset++;";
+      val = buffer.readInt8();";
           case 'short':
             method += "
-      val = bytes.getUInt16(offset);
-      offset += 2;";
+      val = buffer.readUint16();";
           case 'long':
             method += "
-      val = bytes.getInt32(offset);
-      offset += 4;";
+      val = buffer.readInt32();";
           case 'longlong':
           case 'timestamp':
             method += "
-      val = bytes.getInt64(offset);
-      offset += 8;";
+      val = buffer.readInt64();";
           case 'longstr':
             method += "
-      len = bytes.getInt32(offset);
-      offset += 4;
-      val = bytes.getString(offset, len);
-      offset += len;";
+      len = buffer.readInt32();
+      val = buffer.readString(len);";
           case 'shortstr':
             method += "
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;";
+      len = buffer.readInt8();
+      val = buffer.readString(len);";
           case 'table':
             method += "
-      len = bytes.getInt32(offset);
-      offset += 4;
-      val = Codec.DecodeFields(Bytes.ofData(bytes.sub(offset, len).getData()));";
+      len = buffer.readInt32();
+      var buf:Bytes = Bytes.alloc(len);
+      buffer.readBytes(buf, 0, len);
+      val = Codec.DecodeFields(Bytes.ofData(buf.getData()));";
           default:
             throw new Exception('Unexpected type in argument list: ${p.type}');
         }

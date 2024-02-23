@@ -10,6 +10,8 @@ tutorial/routing/emitlog
 tutorial/routing/receivelog
 tutorial/topic/emitlog
 tutorial/topic/receivelog
+tutorial/rpc/server
+tutorial/rpc/client
 spec/*.json
 pages
 bin

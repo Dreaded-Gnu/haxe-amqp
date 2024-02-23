@@ -12,7 +12,7 @@ typedef MessageProperties = {
   @:optional var clusterId:String;
   @:optional var headers:Dynamic;
   @:optional var replyTo:String;
-  @:optional var correlationId:Int;
+  @:optional var correlationId:String;
   @:optional var priority:Int;
   @:optional var type:String;
   @:optional var timestamp:Int64;

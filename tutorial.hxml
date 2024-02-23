@@ -3,6 +3,7 @@
 -lib hxdispatch
 # following is only necessary for vscode
 -lib utest
+-lib uuid
 --each
 
 -cp tutorial/hello_world
@@ -53,3 +54,13 @@
 -cp tutorial/topic
 -main tutorial.topic.ReceiveLog
 -cpp tutorial/topic/receivelog
+--next
+
+-cp tutorial/rpc
+-main tutorial.rpc.Server
+-cpp tutorial/rpc/server
+--next
+
+-cp tutorial/rpc
+-main tutorial.rpc.Client
+-cpp tutorial/rpc/client

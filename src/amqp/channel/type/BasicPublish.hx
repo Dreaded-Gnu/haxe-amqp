@@ -8,7 +8,7 @@ typedef BasicPublish = {
   @:optional var contentType:String;
   @:optional var contentEncoding:String;
   @:optional var priority:Int;
-  @:optional var correlationId:Int;
+  @:optional var correlationId:String;
   @:optional var replyTo:String;
   @:optional var messageId:Int;
   @:optional var timestamp:Int;

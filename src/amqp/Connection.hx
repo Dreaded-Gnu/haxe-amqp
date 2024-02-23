@@ -197,7 +197,7 @@ class Connection extends Dispatcher<Dynamic> {
   /**
    * Receive acceptor polling every second for new data
    */
-  private function receiveAcceptor():Void {
+  public function receiveAcceptor():Void {
     // fetch data from output buffer
     var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
     // flush out

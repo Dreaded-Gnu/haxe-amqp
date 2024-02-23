@@ -4444,106 +4444,83 @@ class EncoderDecoderInfo {
 
   public static function decodeBasicProperties(buffer:BytesInput):Dynamic {
     var flags:Int;
-    var offset:Int = 2;
     var val:Dynamic;
     var len:Int;
 
-    var bytes:Bytes = Bytes.ofData(buffer.readAll().getData());
-
-    flags = bytes.getUInt16(0);
+    buffer.bigEndian = true;
+    flags = buffer.readUInt16();
     if (flags == 0) {
       return {};
     }
+
     var fields:Dynamic = {contentType: null,contentEncoding: null,headers: null,deliveryMode: null,priority: null,correlationId: null,replyTo: null,expiration: null,messageId: null,timestamp: null,type: null,userId: null,appId: null,clusterId: null,};
     if (flags & 32768 == 32768) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.contentType = val;
     }
     if (flags & 16384 == 16384) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.contentEncoding = val;
     }
     if (flags & 8192 == 8192) {
-      len = bytes.getInt32(offset);
-      offset += 4;
-      val = Codec.DecodeFields(Bytes.ofData(bytes.sub(offset, len).getData()));
+      len = buffer.readInt32();
+      var buf:Bytes = Bytes.alloc(len);
+      buffer.readBytes(buf, 0, len);
+      val = Codec.DecodeFields(Bytes.ofData(buf.getData()));
       fields.headers = val;
     }
     if (flags & 4096 == 4096) {
-      val = bytes.get(offset);
-      offset++;
+      val = buffer.readInt8();
       fields.deliveryMode = val;
     }
     if (flags & 2048 == 2048) {
-      val = bytes.get(offset);
-      offset++;
+      val = buffer.readInt8();
       fields.priority = val;
     }
     if (flags & 1024 == 1024) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.correlationId = val;
     }
     if (flags & 512 == 512) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.replyTo = val;
     }
     if (flags & 256 == 256) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.expiration = val;
     }
     if (flags & 128 == 128) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.messageId = val;
     }
     if (flags & 64 == 64) {
-      val = bytes.getInt64(offset);
-      offset += 8;
+      val = buffer.readInt64();
       fields.timestamp = val;
     }
     if (flags & 32 == 32) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.type = val;
     }
     if (flags & 16 == 16) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.userId = val;
     }
     if (flags & 8 == 8) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.appId = val;
     }
     if (flags & 4 == 4) {
-      len = bytes.get(offset);
-      offset++;
-      val = bytes.getString(offset, len);
-      offset += len;
+      len = buffer.readInt8();
+      val = buffer.readString(len);
       fields.clusterId = val;
     }
     return fields;

@@ -96,7 +96,7 @@ class Frame {
     var size:Int = fh.size;
     var rest:Bytes = fh.rest;
     if (size > max) {
-      throw new Exception('Frame size exceeds frame max');
+      throw new Exception('Frame size exceeds ${max} with ${size}');
     } else if (rest.length > size) {
       if (rest.get(size) != Constant.FRAME_END) {
         throw new Exception('Invalid frame');
