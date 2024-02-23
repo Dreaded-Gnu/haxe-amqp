@@ -35,7 +35,7 @@ class EmitLog {
         // declare queue
         channel.declareExchange({exchange: 'topic_logs', type: 'topic'}, () -> {
           // publish a message
-          channel.basicPublish('direct_logs', routingKey, Bytes.ofString(message, Encoding.UTF8));
+          channel.basicPublish('topic_logs', routingKey, Bytes.ofString(message, Encoding.UTF8));
           trace(' [x] Sent ${message}:${routingKey}');
           // close channel
           channel.close(() -> {
