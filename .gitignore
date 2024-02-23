@@ -8,6 +8,8 @@ tutorial/publish_subscribe/emitlog
 tutorial/publish_subscribe/receivelog
 tutorial/routing/emitlog
 tutorial/routing/receivelog
+tutorial/topic/emitlog
+tutorial/topic/receivelog
 spec/*.json
 pages
 bin

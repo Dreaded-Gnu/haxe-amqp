@@ -33,3 +33,23 @@
 -cp tutorial/publish_subscribe
 -main tutorial.publish_subscribe.ReceiveLog
 -cpp tutorial/publish_subscribe/receivelog
+--next
+
+-cp tutorial/routing
+-main tutorial.routing.EmitLog
+-cpp tutorial/routing/emitlog
+--next
+
+-cp tutorial/routing
+-main tutorial.routing.ReceiveLog
+-cpp tutorial/routing/receivelog
+
+
+-cp tutorial/topic
+-main tutorial.topic.EmitLog
+-cpp tutorial/topic/emitlog
+--next
+
+-cp tutorial/topic
+-main tutorial.topic.ReceiveLog
+-cpp tutorial/topic/receivelog

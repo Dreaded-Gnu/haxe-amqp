@@ -1,4 +1,4 @@
-package tutorial.publish_subscribe;
+package tutorial.routing;
 
 import amqp.message.Message;
 import amqp.Channel;
@@ -10,11 +10,11 @@ class ReceiveLog {
    * Main entry point
    */
   public static function main():Void {
-    var args:Array<String> = Sys.args();
-    var message:String = "Hello world";
+    var severities:Array<String> = Sys.args();
     // check for argument length
-    if (0 < args.length) {
-      message = args.join(' ');
+    if (0 >= severities.length) {
+      trace("Usage: ReceiveLog [info] [warn] [error]");
+      return;
     }
     // create connection instance
     var cfg:Config = new Config();
@@ -33,13 +33,16 @@ class ReceiveLog {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareExchange({exchange: 'logs', type: 'fanout'}, () -> {
-          channel.declareQueue({queue: '',}, (data:Dynamic) -> {
-            channel.bindQueue({exchange: 'logs', queue: data.fields.queue}, () -> {
-              trace('[*] Waiting for logs. To exit press CTRL+C');
-              channel.consumeQueue({queue: data.fields.queue, noAck: true}, (msg:Message) -> {
-                trace('[x] ${msg.content.toString()}');
-              });
+        channel.declareExchange({exchange: 'direct_logs', type: 'direct'}, () -> {
+          channel.declareQueue({queue: '', exclusive: true,}, (data:Dynamic) -> {
+            // bind severities
+            for (severity in severities) {
+              channel.bindQueue({exchange: 'direct_logs', queue: data.fields.queue, routingKey: severity,}, () -> {});
+            }
+            // consume queue
+            trace('[*] Waiting for logs. To exit press CTRL+C');
+            channel.consumeQueue({queue: data.fields.queue, noAck: true,}, (msg:Message) -> {
+              trace('[x] ${msg.fields.routingKey} ${msg.content.toString()}');
             });
           });
         });

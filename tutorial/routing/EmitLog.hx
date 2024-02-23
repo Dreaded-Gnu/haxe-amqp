@@ -1,21 +1,21 @@
-package tutorial.publish_subscribe;
+package tutorial.routing;
 
-import amqp.message.Message;
+import haxe.io.Encoding;
+import amqp.helper.Bytes;
 import amqp.Channel;
 import amqp.Connection;
 import amqp.connection.Config;
 
-class ReceiveLog {
+class EmitLog {
   /**
    * Main entry point
    */
   public static function main():Void {
     var args:Array<String> = Sys.args();
-    var message:String = "Hello world";
-    // check for argument length
-    if (0 < args.length) {
-      message = args.join(' ');
-    }
+    // get severity
+    var severity:String = args.length > 0 ? args.shift() : 'info';
+    // build message
+    var message:String = args.length > 0 ? args.join(' ') : "Hello world";
     // create connection instance
     var cfg:Config = new Config();
     // create connection instance
@@ -33,14 +33,15 @@ class ReceiveLog {
       // create channel
       var channel:Channel = conn.channel((channel:Channel) -> {
         // declare queue
-        channel.declareExchange({exchange: 'logs', type: 'fanout'}, () -> {
-          channel.declareQueue({queue: '',}, (data:Dynamic) -> {
-            channel.bindQueue({exchange: 'logs', queue: data.fields.queue}, () -> {
-              trace('[*] Waiting for logs. To exit press CTRL+C');
-              channel.consumeQueue({queue: data.fields.queue, noAck: true}, (msg:Message) -> {
-                trace('[x] ${msg.content.toString()}');
-              });
-            });
+        channel.declareExchange({exchange: 'direct_logs', type: 'direct'}, () -> {
+          // publish a message
+          channel.basicPublish('direct_logs', severity, Bytes.ofString(message, Encoding.UTF8), {persistant: true,});
+          trace(' [x] Sent ${message} on severity ${severity}');
+          // close channel
+          channel.close(() -> {
+            trace("closing connection after channel was closed!");
+            // close connection finally
+            conn.close();
           });
         });
       });

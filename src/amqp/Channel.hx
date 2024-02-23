@@ -250,8 +250,8 @@ class Channel extends Dispatcher<Dynamic> {
    * @param options
    * @param callback
    */
-  public function bindQueue(options:BindQueue, callback:()->Void):Void {
-    this.setExpected(EncoderDecoderInfo.QueueBindOk, (frame:Dynamic)-> {
+  public function bindQueue(options:BindQueue, callback:() -> Void):Void {
+    this.setExpected(EncoderDecoderInfo.QueueBindOk, (frame:Dynamic) -> {
       callback();
     });
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueBind, options);
@@ -262,7 +262,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param config
    * @param callback
    */
-  public function declareExchange(config:DeclareExchange, callback:()->Void):Void {
+  public function declareExchange(config:DeclareExchange, callback:() -> Void):Void {
     // build arguments dynamic
     var arg:Dynamic = {};
     if (Reflect.hasField(config, 'alternateExchange')) {
@@ -280,7 +280,7 @@ class Channel extends Dispatcher<Dynamic> {
       arguments: arg
     };
     // set expected
-    this.setExpected(EncoderDecoderInfo.ExchangeDeclareOk, (frame:Dynamic)-> {
+    this.setExpected(EncoderDecoderInfo.ExchangeDeclareOk, (frame:Dynamic) -> {
       callback();
     });
     // send method
@@ -408,8 +408,8 @@ class Channel extends Dispatcher<Dynamic> {
    * @param callback
    * @return ->Void):Void
    */
-  public function basicQos(option:BasicQos, callback:()->Void):Void {
-    this.setExpected(EncoderDecoderInfo.BasicQosOk, (frame:Dynamic)-> {
+  public function basicQos(option:BasicQos, callback:() -> Void):Void {
+    this.setExpected(EncoderDecoderInfo.BasicQosOk, (frame:Dynamic) -> {
       callback();
     });
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicQos, option);
