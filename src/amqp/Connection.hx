@@ -280,7 +280,10 @@ class Connection extends Dispatcher<Dynamic> {
     // send message to thread
     thread.sendMessage(this);
 
+    // create new channel 0
     var channel:Channel0 = new Channel0(this, 0);
+    // force channel state to be open for channel 0
+    channel.forceConnectionState(ChannelStateOpen);
     // setup map
     this.channelMap = new Map<Int, Channel>();
     // insert instance for control channel 0

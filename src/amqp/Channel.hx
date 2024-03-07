@@ -29,6 +29,7 @@ class Channel extends Dispatcher<Dynamic> {
   public static inline var EVENT_NACK:Event = "nack";
   public static inline var EVENT_CANCEL:Event = "cancel";
   public static inline var EVENT_ERROR:Event = "error";
+  public static inline var EVENT_CLOSED:Event = "closed";
 
   private var connection:Connection;
   private var channelId:Int;
@@ -60,6 +61,21 @@ class Channel extends Dispatcher<Dynamic> {
   }
 
   /**
+   * Send or enqueue a message
+   * @param method
+   * @param fields
+   */
+  private function sendOrEnqueue(method:Int, fields:Dynamic):Void {
+    // if one callback is in list, it will be sent out
+    if (this.expectedCallback.length == 1) {
+      this.connection.sendMethod(this.channelId, method, fields);
+      return;
+    }
+    // there is something ongoing so push to buffer
+    this.outgoingMessageBuffer.push({method: method, fields: fields,});
+  }
+
+  /**
    * Constructor
    * @param connection
    */
@@ -84,6 +100,14 @@ class Channel extends Dispatcher<Dynamic> {
   }
 
   /**
+   * Force a connection state of the channel
+   * @param state
+   */
+  public function forceConnectionState(state:ChannelState):Void {
+    this.state = state;
+  }
+
+  /**
    * Set expected information
    * @param method
    * @param callback
@@ -104,10 +128,7 @@ class Channel extends Dispatcher<Dynamic> {
   public function accept(frame:Dynamic):Void {
     // check for closed
     if (this.state == ChannelStateClosed) {
-      this.connection.closeWithError(
-        'Channel which is about to receive data is in closed state',
-        Constant.UNEXPECTED_FRAME
-      );
+      this.connection.closeWithError('Channel which is about to receive data is in closed state', Constant.UNEXPECTED_FRAME);
     }
     // handle callback
     try {
@@ -199,21 +220,6 @@ class Channel extends Dispatcher<Dynamic> {
           this.connection.sendMethod(this.channelId, msg.method, msg.fields);
         }
     }
-  }
-
-  /**
-   * Send or enqueue a message
-   * @param method
-   * @param fields
-   */
-  private function sendOrEnqueue(method:Int, fields:Dynamic):Void {
-    // if one callback is in list, it will be sent out
-    if (this.expectedCallback.length == 1) {
-      this.connection.sendMethod(this.channelId, method, fields);
-      return;
-    }
-    // there is something ongoing so push to buffer
-    this.outgoingMessageBuffer.push({method: method, fields: fields,});
   }
 
   /**
@@ -589,5 +595,11 @@ class Channel extends Dispatcher<Dynamic> {
   /**
    * Shutdown method
    */
-  public function shutdown():Void {}
+  public function shutdown():Void {
+    this.expectedCallback = [];
+    this.expectedFrame = [];
+    this.outgoingMessageBuffer = [];
+    this.state = ChannelStateClosed;
+    this.trigger(EVENT_CLOSED, "shutdown");
+  }
 }
