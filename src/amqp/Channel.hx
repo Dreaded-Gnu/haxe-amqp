@@ -38,6 +38,7 @@ class Channel extends Dispatcher<Dynamic> {
   private var consumer:Map<String, Array<(Message) -> Void>>;
   private var incomingMessage:Message;
   private var incomingMessageBuffer:BytesOutput;
+  private var outgoingMessageBuffer:Array<{method:Int, fields:Dynamic}>;
 
   /**
    * Helper to validate expected frame
@@ -74,6 +75,7 @@ class Channel extends Dispatcher<Dynamic> {
     this.consumer = new Map<String, Array<(Message) -> Void>>();
     this.incomingMessage = null;
     this.incomingMessageBuffer = new BytesOutput();
+    this.outgoingMessageBuffer = [];
     // register event handlers
     this.register(EVENT_ACK);
     this.register(EVENT_NACK);
@@ -177,10 +179,11 @@ class Channel extends Dispatcher<Dynamic> {
       case EncoderDecoderInfo.BasicCancel:
         this.trigger(EVENT_CANCEL, frame.fields);
       case EncoderDecoderInfo.ChannelClose:
-        // drain expected callback
+        // drain expected callback and frame
         this.expectedCallback = [];
-        // drain expected frame
         this.expectedFrame = [];
+        // drain outgoing buffer
+        this.outgoingMessageBuffer = [];
         // send channel close ok
         this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelCloseOk, {});
         var msg:String = 'Channel closed by server: ${frame.fields.replyCode} with message ${frame.fields.replyText}';
@@ -188,9 +191,29 @@ class Channel extends Dispatcher<Dynamic> {
         // set state to closed
         this.state = ChannelStateClosed;
       default:
-        trace('Send enqueued events');
-        /// FIXME: SEND NEXT REQUEST FROM QUEUE
+        // shift first element of pending messages
+        var msg = this.outgoingMessageBuffer.shift();
+        // handle message existing
+        if (msg != null) {
+          // send method
+          this.connection.sendMethod(this.channelId, msg.method, msg.fields);
+        }
     }
+  }
+
+  /**
+   * Send or enqueue a message
+   * @param method
+   * @param fields
+   */
+  private function sendOrEnqueue(method:Int, fields:Dynamic):Void {
+    // if one callback is in list, it will be sent out
+    if (this.expectedCallback.length == 1) {
+      this.connection.sendMethod(this.channelId, method, fields);
+      return;
+    }
+    // there is something ongoing so push to buffer
+    this.outgoingMessageBuffer.push({method: method, fields: fields,});
   }
 
   /**
@@ -208,7 +231,7 @@ class Channel extends Dispatcher<Dynamic> {
       callback(this);
     });
     // send channel open
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelOpen, {outOfBand: ""});
+    this.sendOrEnqueue(EncoderDecoderInfo.ChannelOpen, {outOfBand: ""});
   }
 
   /**
@@ -219,7 +242,7 @@ class Channel extends Dispatcher<Dynamic> {
     this.setExpected(EncoderDecoderInfo.ChannelCloseOk, (frame:Dynamic) -> {
       callback();
     });
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelClose, {
+    this.sendOrEnqueue(EncoderDecoderInfo.ChannelClose, {
       replyText: 'Goodbye',
       replyCode: Constant.REPLY_SUCCESS,
       methodId: 0,
@@ -274,7 +297,7 @@ class Channel extends Dispatcher<Dynamic> {
     this.setExpected(EncoderDecoderInfo.QueueDeclareOk, (frame:Dynamic) -> {
       callback(frame);
     });
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueDeclare, fields);
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueDeclare, fields);
   }
 
   /**
@@ -286,7 +309,7 @@ class Channel extends Dispatcher<Dynamic> {
     this.setExpected(EncoderDecoderInfo.QueueBindOk, (frame:Dynamic) -> {
       callback();
     });
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueBind, options);
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueBind, options);
   }
 
   /**
@@ -298,7 +321,7 @@ class Channel extends Dispatcher<Dynamic> {
     this.setExpected(EncoderDecoderInfo.QueueUnbindOk, (frame:Dynamic) -> {
       callback();
     });
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueUnbind, options);
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueUnbind, options);
   }
 
   /**
@@ -337,7 +360,7 @@ class Channel extends Dispatcher<Dynamic> {
       this.consumer.set(frame.fields.consumerTag, a);
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicConsume, fields);
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicConsume, fields);
   }
 
   /**
@@ -351,7 +374,7 @@ class Channel extends Dispatcher<Dynamic> {
       callback(frame.fields.messageCount);
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueDelete, config);
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueDelete, config);
   }
 
   /**
@@ -365,7 +388,7 @@ class Channel extends Dispatcher<Dynamic> {
       callback(frame.fields.messageCount);
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueuePurge, config);
+    this.sendOrEnqueue(EncoderDecoderInfo.QueuePurge, config);
   }
 
   /**
@@ -395,7 +418,7 @@ class Channel extends Dispatcher<Dynamic> {
       callback();
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeDeclare, fields);
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDeclare, fields);
   }
 
   /**
@@ -409,7 +432,7 @@ class Channel extends Dispatcher<Dynamic> {
       callback();
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeDelete, config);
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDelete, config);
   }
 
   /**
@@ -423,7 +446,7 @@ class Channel extends Dispatcher<Dynamic> {
       callback();
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeBind, config);
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeBind, config);
   }
 
   /**
@@ -437,7 +460,7 @@ class Channel extends Dispatcher<Dynamic> {
       callback();
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeUnbind, config);
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeUnbind, config);
   }
 
   /**
@@ -500,7 +523,7 @@ class Channel extends Dispatcher<Dynamic> {
     this.setExpected(EncoderDecoderInfo.BasicQosOk, (frame:Dynamic) -> {
       callback();
     });
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicQos, option);
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicQos, option);
   }
 
   /**
@@ -509,7 +532,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param allUpTo
    */
   public function ack(message:Message, allUpTo:Bool = false):Void {
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicAck, {
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicAck, {
       deliveryTag: message.fields.deliveryTag,
       multiple: allUpTo,
     });
@@ -519,7 +542,7 @@ class Channel extends Dispatcher<Dynamic> {
    * Acknowledge all messages
    */
   public function ackAll():Void {
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicAck, {
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicAck, {
       deliveryTag: 0,
       multiple: true,
     });
@@ -532,7 +555,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param requeue
    */
   public function nack(message:Message, allUpTo:Bool = false, requeue:Bool = false):Void {
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicNack, {
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicNack, {
       deliveryTag: message.fields.deliveryTag,
       multiple: allUpTo,
       requeue: requeue,
@@ -544,7 +567,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param requeue
    */
   public function nackAll(requeue:Bool = false):Void {
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicNack, {
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicNack, {
       deliveryTag: 0,
       multiple: true,
       requeue: requeue,
@@ -557,7 +580,7 @@ class Channel extends Dispatcher<Dynamic> {
    * @param requeue
    */
   public function reject(message:Message, requeue:Bool = false):Void {
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicReject, {
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicReject, {
       deliveryTag: message.fields.deliveryTag,
       requeue: requeue,
     });
