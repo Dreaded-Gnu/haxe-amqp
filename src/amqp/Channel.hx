@@ -1,5 +1,11 @@
 package amqp;
 
+import amqp.channel.type.UnbindQueue;
+import amqp.channel.type.UnbindExchange;
+import amqp.channel.type.BindExchange;
+import amqp.channel.type.DeleteExchange;
+import amqp.channel.type.PurgeQueue;
+import amqp.channel.type.DeleteQueue;
 import amqp.channel.type.BindQueue;
 import amqp.channel.type.DeclareExchange;
 import amqp.channel.type.BasicQos;
@@ -22,6 +28,7 @@ class Channel extends Dispatcher<Dynamic> {
   public static inline var EVENT_ACK:Event = "ack";
   public static inline var EVENT_NACK:Event = "nack";
   public static inline var EVENT_CANCEL:Event = "cancel";
+  public static inline var EVENT_ERROR:Event = "error";
 
   private var connection:Connection;
   private var channelId:Int;
@@ -71,6 +78,7 @@ class Channel extends Dispatcher<Dynamic> {
     this.register(EVENT_ACK);
     this.register(EVENT_NACK);
     this.register(EVENT_CANCEL);
+    this.register(EVENT_ERROR);
   }
 
   /**
@@ -92,6 +100,14 @@ class Channel extends Dispatcher<Dynamic> {
    * @param frame
    */
   public function accept(frame:Dynamic):Void {
+    // check for closed
+    if (this.state == ChannelStateClosed) {
+      this.connection.closeWithError(
+        'Channel which is about to receive data is in closed state',
+        Constant.UNEXPECTED_FRAME
+      );
+    }
+    // handle callback
     try {
       var expected:Int = this.expectedFrame.length > 0 ? this.expectedFrame.shift() : 0;
       var callback:(Dynamic) -> Void = this.expectedCallback.shift();
@@ -101,8 +117,6 @@ class Channel extends Dispatcher<Dynamic> {
       if (callback != null) {
         // execute callback
         callback(frame);
-        // skip rest
-        return;
       }
     } catch (e:Exception) {
       // when exception occurs we got a mismatch
@@ -163,9 +177,20 @@ class Channel extends Dispatcher<Dynamic> {
       case EncoderDecoderInfo.BasicCancel:
         this.trigger(EVENT_CANCEL, frame.fields);
       case EncoderDecoderInfo.ChannelClose:
-        throw new Exception("ToDo: Implement channel close handling!");
+        // drain expected callback
+        this.expectedCallback = [];
+        // drain expected frame
+        this.expectedFrame = [];
+        // send channel close ok
+        this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelCloseOk, {});
+        var msg:String = 'Channel closed by server: ${frame.fields.replyCode} with message ${frame.fields.replyText}';
+        this.trigger(EVENT_ERROR, msg);
+        // set state to closed
+        this.state = ChannelStateClosed;
+      default:
+        trace('Send enqueued events');
+        /// FIXME: SEND NEXT REQUEST FROM QUEUE
     }
-    // trace(frame, frame.size?.low, frame.size?.high);
   }
 
   /**
@@ -173,9 +198,16 @@ class Channel extends Dispatcher<Dynamic> {
    * @param callback
    */
   public function open(callback:(Channel) -> Void):Void {
+    // set channel state
+    this.state = ChannelStateInit;
+    // set expected
     this.setExpected(EncoderDecoderInfo.ChannelOpenOk, (frame:Dynamic) -> {
+      // set state to open
+      this.state = ChannelStateOpen;
+      // call callback
       callback(this);
     });
+    // send channel open
     this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelOpen, {outOfBand: ""});
   }
 
@@ -258,6 +290,85 @@ class Channel extends Dispatcher<Dynamic> {
   }
 
   /**
+   * Unbind a queue
+   * @param options
+   * @param callback
+   */
+  public function unbindQueue(options:UnbindQueue, callback:() -> Void):Void {
+    this.setExpected(EncoderDecoderInfo.QueueUnbindOk, (frame:Dynamic) -> {
+      callback();
+    });
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueUnbind, options);
+  }
+
+  /**
+   * Consume a queue
+   * @param config
+   * @param callback
+   */
+  public function consumeQueue(config:ConsumeQueue, callback:(Message) -> Void):Void {
+    // fill argument table
+    var argt:Dynamic = {};
+    if (Reflect.hasField(config, 'priority')) {
+      Reflect.setField(argt, 'x-priority', config.priority);
+    }
+    // build fields
+    var fields:Dynamic = {
+      arguments: argt,
+      ticket: config.ticket,
+      queue: config.queue,
+      consumerTag: config.consumerTag,
+      noLocal: config.noLocal,
+      noAck: config.noAck,
+      exclusive: config.exclusive,
+      nowait: config.nowait,
+    };
+    // set expected frame and callback
+    this.setExpected(EncoderDecoderInfo.BasicConsumeOk, (frame:Dynamic) -> {
+      // get bound callbacks
+      var a:Array<(Message) -> Void> = this.consumer.get(frame.fields.consumerTag);
+      // handle no callback existing
+      if (a == null) {
+        a = new Array<(Message) -> Void>();
+      }
+      // push back callback
+      a.push(callback);
+      // write back
+      this.consumer.set(frame.fields.consumerTag, a);
+    });
+    // send method
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicConsume, fields);
+  }
+
+  /**
+   * Delete a queue
+   * @param config
+   * @param callback
+   */
+  public function deleteQueue(config:DeleteQueue, callback:(messageCount:Int) -> Void):Void {
+    // set expected frame and callback
+    this.setExpected(EncoderDecoderInfo.QueueDeleteOk, (frame:Dynamic) -> {
+      callback(frame.fields.messageCount);
+    });
+    // send method
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueueDelete, config);
+  }
+
+  /**
+   * Purge a queue
+   * @param config
+   * @param callback
+   */
+  public function purgeQueue(config:PurgeQueue, callback:(messageCount:Int) -> Void):Void {
+    // set expected frame and callback
+    this.setExpected(EncoderDecoderInfo.QueuePurgeOk, (frame:Dynamic) -> {
+      callback(frame.fields.messageCount);
+    });
+    // send method
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.QueuePurge, config);
+  }
+
+  /**
    * Declare exchange
    * @param config
    * @param callback
@@ -288,68 +399,45 @@ class Channel extends Dispatcher<Dynamic> {
   }
 
   /**
-   * Consume a queue
+   * Delete an exchange
    * @param config
    * @param callback
    */
-  public function consumeQueue(config:ConsumeQueue, callback:(Message) -> Void):Void {
-    // fill argument table
-    var argt:Dynamic = {};
-    if (Reflect.hasField(config, 'priority')) {
-      Reflect.setField(argt, 'x-priority', config.priority);
-    }
-    // build fields
-    var fields:Dynamic = {
-      arguments: argt,
-    };
-    if (Reflect.hasField(config, 'ticket')) {
-      Reflect.setField(fields, 'ticket', config.ticket);
-    } else {
-      Reflect.setField(fields, 'ticket', 0);
-    }
-    if (Reflect.hasField(config, 'queue')) {
-      Reflect.setField(fields, 'queue', config.queue);
-    }
-    if (Reflect.hasField(config, 'consumerTag')) {
-      Reflect.setField(fields, 'consumerTag', config.consumerTag);
-    } else {
-      Reflect.setField(fields, 'consumerTag', '');
-    }
-    if (Reflect.hasField(config, 'noLocal')) {
-      Reflect.setField(fields, 'noLocal', config.noLocal);
-    } else {
-      Reflect.setField(fields, 'noLocal', false);
-    }
-    if (Reflect.hasField(config, 'noAck')) {
-      Reflect.setField(fields, 'noAck', config.noAck);
-    } else {
-      Reflect.setField(fields, 'noAck', false);
-    }
-    if (Reflect.hasField(config, 'exclusive')) {
-      Reflect.setField(fields, 'exclusive', config.exclusive);
-    } else {
-      Reflect.setField(fields, 'exclusive', false);
-    }
-    if (Reflect.hasField(config, 'nowait')) {
-      Reflect.setField(fields, 'nowait', config.nowait);
-    } else {
-      Reflect.setField(fields, 'nowait', false);
-    }
+  public function deleteExchange(config:DeleteExchange, callback:() -> Void):Void {
     // set expected frame and callback
-    this.setExpected(EncoderDecoderInfo.BasicConsumeOk, (frame:Dynamic) -> {
-      // get bound callbacks
-      var a:Array<(Message) -> Void> = this.consumer.get(frame.fields.consumerTag);
-      // handle no callback existing
-      if (a == null) {
-        a = new Array<(Message) -> Void>();
-      }
-      // push back callback
-      a.push(callback);
-      // write back
-      this.consumer.set(frame.fields.consumerTag, a);
+    this.setExpected(EncoderDecoderInfo.ExchangeDeleteOk, (frame:Dynamic) -> {
+      callback();
     });
     // send method
-    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.BasicConsume, fields);
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeDelete, config);
+  }
+
+  /**
+   * Bind an exchange
+   * @param config
+   * @param callback
+   */
+  public function bindExchange(config:BindExchange, callback:() -> Void):Void {
+    // set expected frame and callback
+    this.setExpected(EncoderDecoderInfo.ExchangeBindOk, (frame:Dynamic) -> {
+      callback();
+    });
+    // send method
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeBind, config);
+  }
+
+  /**
+   * Unbind an exchange
+   * @param config
+   * @param callback
+   */
+  public function unbindExchange(config:UnbindExchange, callback:() -> Void):Void {
+    // set expected frame and callback
+    this.setExpected(EncoderDecoderInfo.ExchangeUnbindOk, (frame:Dynamic) -> {
+      callback();
+    });
+    // send method
+    this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ExchangeUnbind, config);
   }
 
   /**
