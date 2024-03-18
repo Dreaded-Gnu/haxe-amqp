@@ -121,12 +121,16 @@ class Connection extends Dispatcher<Dynamic> {
     var connection:Connection = cast Thread.readMessage(true);
     while (!connection.closed) {
       try {
-        var byte:Int = connection.sock.input.readByte();
-        connection.output.writeByte(byte);
+        // read byte and write to output
+        connection.output.writeByte(connection.sock.input.readByte());
       } catch (e:Dynamic) {
         if (Std.isOfType(e, haxe.io.Eof) || e == haxe.io.Eof) {
-          trace('Eof, reader thread exiting...');
-          return;
+          // eof only handled for non secure since it throws eof
+          // in secure sockets, when there is no further data
+          if (!connection.config.isSecure) {
+            trace('Eof, reader thread exiting...');
+            return;
+          }
         } else if (e == haxe.io.Error.Blocked) {
           // trace( 'Blocked!' );
         } else {
@@ -259,7 +263,14 @@ class Connection extends Dispatcher<Dynamic> {
   public function connect(callback:() -> Void):Void {
     // generate socket
     if (this.config.isSecure) {
-      this.sock = new sys.ssl.Socket();
+      // create ssl socket
+      var sslSocket:sys.ssl.Socket = new sys.ssl.Socket();
+      // set ca and certificate
+      sslSocket.setCA(sys.ssl.Certificate.loadFile(this.config.sslCaCert));
+      sslSocket.setCertificate(sys.ssl.Certificate.loadFile(this.config.sslCert), sys.ssl.Key.loadFile(this.config.sslKey));
+      sslSocket.verifyCert = this.config.sslVerify;
+      // set sock
+      this.sock = sslSocket;
     } else {
       this.sock = new sys.net.Socket();
     }
@@ -271,6 +282,10 @@ class Connection extends Dispatcher<Dynamic> {
     this.sock.setBlocking(true);
     this.sock.setFastSend(true);
     this.closed = false;
+    // perform ssl handshake
+    if (this.config.isSecure) {
+      cast(this.sock, sys.ssl.Socket).handshake();
+    }
 
     // get opening frame content
     var openFrameData:TOpenFrame = openFrames();

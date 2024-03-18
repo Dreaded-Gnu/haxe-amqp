@@ -29,7 +29,6 @@ class Config {
   public var heartbeat(default, set):Int = 0;
   public var keepalive(default, default):Bool = false;
   public var isSecure(default, set):Bool = false;
-  @:deprecated public var networkProtocol(default, set):String = 'tcp';
   public var streamContext(default, set):Dynamic = null;
   public var sendBufferSize(default, set):Int = 0;
   public var dispatchSignals(default, default):Bool = true;
@@ -196,27 +195,7 @@ class Config {
    * @return Bool
    */
   private function set_isSecure(isSecure:Bool):Bool {
-    this.isSecure = isSecure;
-    if (this.isSecure) {
-      this.networkProtocol = 'tls';
-      // this.sslCryptoMethod = STREAM_CRYPTO_METHOD_ANY_CLIENT;
-    } else {
-      this.networkProtocol = 'tcp';
-      this.sslCryptoMethod = null;
-    }
-    return this.isSecure;
-  }
-
-  /**
-   * Setter for networkProtocol property
-   * @param protocol
-   * @return String
-   */
-  private function set_networkProtocol(protocol:String):String {
-    if (null == protocol || 0 >= protocol.length) {
-      throw new Exception('Empty network protocol is not allowed');
-    }
-    return this.networkProtocol = protocol;
+    return this.isSecure = isSecure;
   }
 
   /**

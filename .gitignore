@@ -12,6 +12,9 @@ tutorial/topic/emitlog
 tutorial/topic/receivelog
 tutorial/rpc/server
 tutorial/rpc/client
+tutorial/ssl/sender
+tutorial/ssl/receiver
 spec/*.json
 pages
 bin
+cert

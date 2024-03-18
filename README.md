@@ -16,3 +16,7 @@ haxe-amqp is currently not published to haxelib, so to install you've to use git
 ```bash
 haxelib git haxe-amqp https://github.com/Dreaded-Gnu/haxe-amqp
 ```
+
+## examples
+
+In order to use examples with docker based rabbitmq from this project you've to generate a set of certificates via `tls-gen`.

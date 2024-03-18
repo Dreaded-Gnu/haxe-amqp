@@ -67,7 +67,7 @@ class Channel extends Dispatcher<Dynamic> {
    */
   private function sendOrEnqueue(method:Int, fields:Dynamic):Void {
     // if one callback is in list, it will be sent out
-    if (this.expectedCallback.length == 1) {
+    if (this.expectedCallback.length <= 1) {
       this.connection.sendMethod(this.channelId, method, fields);
       return;
     }

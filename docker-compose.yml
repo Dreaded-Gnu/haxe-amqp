@@ -5,7 +5,10 @@ services:
     image: rabbitmq:management-alpine
     ports:
       - 5672:5672
+      - 5671:5671
       - 15672:15672
       - 15692:15692
     volumes:
+      - ./cert:/cert
       - ./docker/20-logging.conf:/etc/rabbitmq/conf.d/20-logging.conf
+      - ./docker/20-cert.conf:/etc/rabbitmq/conf.d/20-cert.conf
