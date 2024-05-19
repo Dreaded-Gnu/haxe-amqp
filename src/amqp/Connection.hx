@@ -1,14 +1,13 @@
 package amqp;
 
-import amqp.frame.type.DecodedFrame;
 import haxe.Timer;
 import haxe.Exception;
 import sys.net.Host;
 import sys.thread.Thread;
-import hxdispatch.Dispatcher;
-import hxdispatch.Event;
+import emitter.signals.Emitter;
 import amqp.connection.Config;
 import amqp.connection.type.TOpenFrame;
+import amqp.frame.type.DecodedFrame;
 import amqp.helper.Bytes;
 import amqp.helper.BytesInput;
 import amqp.helper.BytesOutput;
@@ -18,11 +17,11 @@ import amqp.helper.protocol.Constant;
 /**
  * Connection class
  */
-class Connection extends Dispatcher<Dynamic> {
-  public static inline var EVENT_CLOSED:Event = "closed";
-  public static inline var EVENT_ERROR:Event = "error";
-  public static inline var EVENT_BLOCKED:Event = "blocked";
-  public static inline var EVENT_UNBLOCKED:Event = "unblocked";
+class Connection extends Emitter {
+  public static inline var EVENT_CLOSED:String = "closed";
+  public static inline var EVENT_ERROR:String = "error";
+  public static inline var EVENT_BLOCKED:String = "blocked";
+  public static inline var EVENT_UNBLOCKED:String = "unblocked";
 
   private static inline var SINGLE_CHUNK_THRESHOLD:Int = 2048;
   private static inline var ACCEPTOR_TIMEOUT:Int = 250;
@@ -57,11 +56,6 @@ class Connection extends Dispatcher<Dynamic> {
     this.frameMax = Constant.FRAME_MIN_SIZE;
     this.heartbeatStatus = false;
     this.rest = new BytesOutput();
-    // register event callbacks
-    this.register(EVENT_CLOSED);
-    this.register(EVENT_ERROR);
-    this.register(EVENT_BLOCKED);
-    this.register(EVENT_UNBLOCKED);
   }
 
   /**
@@ -173,14 +167,14 @@ class Connection extends Dispatcher<Dynamic> {
     // create heartbeat instance
     this.heartbeater = new Heartbeat(this.heartbeat, this.checkHeartbeat);
     // attach beat handler
-    this.heartbeater.attach(Heartbeat.EVENT_BEAT, (hb:Heartbeat) -> {
+    this.heartbeater.on(Heartbeat.EVENT_BEAT, (hb:Heartbeat) -> {
       if (this.closed) {
         return;
       }
       this.sendHeartbeat();
     });
     // attach timeout handler
-    this.heartbeater.attach(Heartbeat.EVENT_TIMEOUT, (hb:Heartbeat) -> {
+    this.heartbeater.on(Heartbeat.EVENT_TIMEOUT, (hb:Heartbeat) -> {
       if (this.closed) {
         return;
       }
@@ -397,7 +391,7 @@ class Connection extends Dispatcher<Dynamic> {
    * @param code
    */
   public function closeWithError(reason:String, code:Int):Void {
-    this.trigger(EVENT_ERROR, reason);
+    this.emit(EVENT_ERROR, reason);
     this.close(reason, code);
   }
 
@@ -520,6 +514,6 @@ class Connection extends Dispatcher<Dynamic> {
     // finally close socket
     this.sock.close();
     // emit closed
-    this.trigger(EVENT_CLOSED, reason);
+    this.emit(EVENT_CLOSED, reason);
   }
 }

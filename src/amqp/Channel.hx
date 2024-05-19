@@ -1,5 +1,18 @@
 package amqp;
 
+import haxe.Int64;
+import amqp.helper.BytesOutput;
+import amqp.message.Message;
+import haxe.io.Encoding;
+import amqp.helper.Bytes;
+import haxe.Exception;
+import emitter.signals.Emitter;
+import amqp.helper.protocol.Constant;
+import amqp.helper.protocol.EncoderDecoderInfo;
+import amqp.channel.type.ChannelState;
+import amqp.channel.type.BasicPublish;
+import amqp.channel.type.ConsumeQueue;
+import amqp.channel.type.Queue;
 import amqp.channel.type.UnbindQueue;
 import amqp.channel.type.UnbindExchange;
 import amqp.channel.type.BindExchange;
@@ -9,27 +22,13 @@ import amqp.channel.type.DeleteQueue;
 import amqp.channel.type.BindQueue;
 import amqp.channel.type.DeclareExchange;
 import amqp.channel.type.BasicQos;
-import haxe.Int64;
-import amqp.helper.BytesOutput;
-import amqp.message.Message;
-import haxe.io.Encoding;
-import amqp.helper.Bytes;
-import haxe.Exception;
-import hxdispatch.Dispatcher;
-import hxdispatch.Event;
-import amqp.helper.protocol.Constant;
-import amqp.helper.protocol.EncoderDecoderInfo;
-import amqp.channel.type.ChannelState;
-import amqp.channel.type.BasicPublish;
-import amqp.channel.type.ConsumeQueue;
-import amqp.channel.type.Queue;
 
-class Channel extends Dispatcher<Dynamic> {
-  public static inline var EVENT_ACK:Event = "ack";
-  public static inline var EVENT_NACK:Event = "nack";
-  public static inline var EVENT_CANCEL:Event = "cancel";
-  public static inline var EVENT_ERROR:Event = "error";
-  public static inline var EVENT_CLOSED:Event = "closed";
+class Channel extends Emitter {
+  public static inline var EVENT_ACK:String = "ack";
+  public static inline var EVENT_NACK:String = "nack";
+  public static inline var EVENT_CANCEL:String = "cancel";
+  public static inline var EVENT_ERROR:String = "error";
+  public static inline var EVENT_CLOSED:String = "closed";
 
   private var connection:Connection;
   private var channelId:Int;
@@ -92,11 +91,6 @@ class Channel extends Dispatcher<Dynamic> {
     this.incomingMessage = null;
     this.incomingMessageBuffer = new BytesOutput();
     this.outgoingMessageBuffer = [];
-    // register event handlers
-    this.register(EVENT_ACK);
-    this.register(EVENT_NACK);
-    this.register(EVENT_CANCEL);
-    this.register(EVENT_ERROR);
   }
 
   /**
@@ -194,11 +188,11 @@ class Channel extends Dispatcher<Dynamic> {
           }
         }
       case EncoderDecoderInfo.BasicAck:
-        this.trigger(EVENT_ACK, frame.fields);
+        this.emit(EVENT_ACK, frame.fields);
       case EncoderDecoderInfo.BasicNack:
-        this.trigger(EVENT_NACK, frame.fields);
+        this.emit(EVENT_NACK, frame.fields);
       case EncoderDecoderInfo.BasicCancel:
-        this.trigger(EVENT_CANCEL, frame.fields);
+        this.emit(EVENT_CANCEL, frame.fields);
       case EncoderDecoderInfo.ChannelClose:
         // drain expected callback and frame
         this.expectedCallback = [];
@@ -208,7 +202,7 @@ class Channel extends Dispatcher<Dynamic> {
         // send channel close ok
         this.connection.sendMethod(this.channelId, EncoderDecoderInfo.ChannelCloseOk, {});
         var msg:String = 'Channel closed by server: ${frame.fields.replyCode} with message ${frame.fields.replyText}';
-        this.trigger(EVENT_ERROR, msg);
+        this.emit(EVENT_ERROR, msg);
         // set state to closed
         this.state = ChannelStateClosed;
       default:
@@ -600,6 +594,6 @@ class Channel extends Dispatcher<Dynamic> {
     this.expectedFrame = [];
     this.outgoingMessageBuffer = [];
     this.state = ChannelStateClosed;
-    this.trigger(EVENT_CLOSED, "shutdown");
+    this.emit(EVENT_CLOSED, "shutdown");
   }
 }

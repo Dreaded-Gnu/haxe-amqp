@@ -63,9 +63,9 @@ class Channel0 extends Channel {
       // shutdown everything
       this.connection.shutdown();
     } else if (frame.id == EncoderDecoderInfo.ConnectionBlocked) {
-      this.connection.trigger(Connection.EVENT_BLOCKED, "blocked");
+      this.connection.emit(Connection.EVENT_BLOCKED, "blocked");
     } else if (frame.id == EncoderDecoderInfo.ConnectionUnblocked) {
-      this.connection.trigger(Connection.EVENT_UNBLOCKED, "unblocked");
+      this.connection.emit(Connection.EVENT_UNBLOCKED, "unblocked");
     } else {
       this.connection.closeWithError('Unexpected frame on channel 0, received ${EncoderDecoderInfo.info(frame.id).name}!', Constant.UNEXPECTED_FRAME);
     }
@@ -248,6 +248,6 @@ class Channel0 extends Channel {
     this.expectedCallback = [];
     this.expectedFrame = [];
     this.state = ChannelStateClosed;
-    this.trigger(Channel.EVENT_CLOSED, "shutdown");
+    this.emit(Channel.EVENT_CLOSED, "shutdown");
   }
 }

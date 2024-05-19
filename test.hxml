@@ -3,5 +3,5 @@
 -main Test
 -lib utest
 -lib format
--lib hxdispatch
+-lib Emitter
 -lib uuid

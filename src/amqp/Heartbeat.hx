@@ -1,12 +1,11 @@
 package amqp;
 
 import haxe.Timer;
-import hxdispatch.Event;
-import hxdispatch.Dispatcher;
+import emitter.signals.Emitter;
 
-class Heartbeat extends Dispatcher<Heartbeat> {
-  public static inline var EVENT_BEAT:Event = "beat";
-  public static inline var EVENT_TIMEOUT:Event = "timeout";
+class Heartbeat extends Emitter {
+  public static inline var EVENT_BEAT:String = "beat";
+  public static inline var EVENT_TIMEOUT:String = "timeout";
 
   private static inline var MISSED_HEARTBEAT_FOR_TIMEOUT:Int = 2;
 
@@ -24,9 +23,6 @@ class Heartbeat extends Dispatcher<Heartbeat> {
   public function new(interval:Int, checkHeartbeat:() -> Bool) {
     // call parent constructor
     super();
-    // register events
-    this.register(EVENT_BEAT);
-    this.register(EVENT_TIMEOUT);
     // save parameters to properties
     this.interval = interval * 1000; // store interval in milliseconds
     this.checkHeartbeat = checkHeartbeat;
@@ -45,9 +41,9 @@ class Heartbeat extends Dispatcher<Heartbeat> {
     // stop timer
     this.sendTimer.stop();
     this.checkTimer.stop();
-    // unregister events
-    this.unregister(EVENT_BEAT);
-    this.unregister(EVENT_TIMEOUT);
+    // clear all handler
+    this.removeCallbacks(EVENT_BEAT);
+    this.removeCallbacks(EVENT_TIMEOUT);
   }
 
   /**
@@ -55,7 +51,7 @@ class Heartbeat extends Dispatcher<Heartbeat> {
    */
   private function send():Void {
     // emit beat event
-    this.trigger(EVENT_BEAT, this);
+    this.emit(EVENT_BEAT, this);
   }
 
   /**
@@ -70,7 +66,7 @@ class Heartbeat extends Dispatcher<Heartbeat> {
     }
     // check against threshold
     if (this.missedBeats >= MISSED_HEARTBEAT_FOR_TIMEOUT) {
-      this.trigger(EVENT_TIMEOUT, this);
+      this.emit(EVENT_TIMEOUT, this);
     }
   }
 }

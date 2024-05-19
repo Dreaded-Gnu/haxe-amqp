@@ -47,11 +47,11 @@ class Client {
     // create connection instance
     conn = new Connection(cfg);
     // add closed listener
-    conn.attach(Connection.EVENT_CLOSED, function(event:String) {
+    conn.on(Connection.EVENT_CLOSED, function(event:String) {
       trace(event);
     });
     // add error listener
-    conn.attach(Connection.EVENT_ERROR, function(event:String) {
+    conn.on(Connection.EVENT_ERROR, function(event:String) {
       trace(event);
     });
     // connect to amqp
