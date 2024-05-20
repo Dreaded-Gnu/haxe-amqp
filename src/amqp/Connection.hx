@@ -1,9 +1,9 @@
 package amqp;
 
+import haxe.MainLoop;
 import haxe.Timer;
 import haxe.Exception;
 import sys.net.Host;
-import sys.thread.Thread;
 import emitter.signals.Emitter;
 import amqp.connection.Config;
 import amqp.connection.type.TOpenFrame;
@@ -33,8 +33,7 @@ class Connection extends Emitter {
   public var heartbeatStatus(default, default):Bool;
 
   private var rest:BytesOutput;
-  private var receiveTimer:Timer;
-  private var thread:Thread;
+  private var mainEvent:MainEvent;
   private var frame:Frame;
   private var channelMap:Map<Int, Channel>;
   private var serverProperties:Dynamic;
@@ -109,29 +108,33 @@ class Connection extends Emitter {
   }
 
   /**
-   * Static socket reader for extra thread
+   * Socket reader called from main loop
    */
-  private static function socketReader() {
-    var connection:Connection = cast Thread.readMessage(true);
-    while (!connection.closed) {
-      try {
-        // read byte and write to output
-        connection.output.writeByte(connection.sock.input.readByte());
-      } catch (e:Dynamic) {
-        if (Std.isOfType(e, haxe.io.Eof) || e == haxe.io.Eof) {
-          // eof only handled for non secure since it throws eof
-          // in secure sockets, when there is no further data
-          if (!connection.config.isSecure) {
-            trace('Eof, reader thread exiting...');
-            return;
-          }
-        } else if (e == haxe.io.Error.Blocked) {
-          // trace( 'Blocked!' );
-        } else {
-          trace('Uncaught: ${e}'); // throw e;
+  private function socketReaderMainLoop():Void {
+    if (this.closed) {
+      return;
+    }
+    // we've valid data for read
+    try {
+      while (true) {
+        // allocate chunk of data
+        var data:Bytes = Bytes.alloc(1024);
+        // read data
+        var read:Int = this.sock.input.readBytes(data, 0, data.length);
+        // handle no more data
+        if (read <= 0) {
+          break;
         }
+        // write to output buffer
+        this.output.writeBytes(data, 0, read);
+      }
+    } catch (e:Dynamic) {
+      if (Std.isOfType(e, haxe.io.Eof) || e == haxe.io.Eof) {} else if (e == haxe.io.Error.Blocked) {} else {
+        trace('Uncaught: ${e}'); // throw e;
       }
     }
+    // execute receive acceptor
+    this.receiveAcceptor();
   }
 
   /**
@@ -273,7 +276,7 @@ class Connection extends Emitter {
     // connect to host
     this.sock.connect(new Host(this.config.host), this.config.port);
     // enable blocking and fast send
-    this.sock.setBlocking(true);
+    this.sock.setBlocking(false);
     this.sock.setFastSend(true);
     this.closed = false;
     // perform ssl handshake
@@ -284,10 +287,11 @@ class Connection extends Emitter {
     // get opening frame content
     var openFrameData:TOpenFrame = openFrames();
 
-    // create thread
-    this.thread = Thread.create(socketReader);
-    // send message to thread
-    thread.sendMessage(this);
+    // add socket reader to main loop
+    this.mainEvent = MainLoop.add(() -> {
+      this.socketReaderMainLoop();
+      Sys.sleep(0.01);
+    });
 
     // create new channel 0
     var channel:Channel0 = new Channel0(this, 0);
@@ -299,9 +303,6 @@ class Connection extends Emitter {
     this.channelMap.set(0, channel);
     // set next channel id
     this.nextChannelId = 1;
-    // set receive timer
-    this.receiveTimer = new Timer(ACCEPTOR_TIMEOUT);
-    this.receiveTimer.run = this.receiveAcceptor;
 
     function onOpenOk(frame:Dynamic):Void {
       // store channel max, frame max and heartbeat
@@ -504,13 +505,12 @@ class Connection extends Emitter {
     }
     // overwrite channels
     this.channelMap = new Map<Int, Channel>();
+    // set close flag
+    this.closed = true;
     // stop heartbeater
     this.stopHeartbeat();
     // clear acceptor
-    this.receiveTimer.stop();
-    // set close flag and reset thread
-    this.closed = true;
-    this.thread = null;
+    this.mainEvent.stop();
     // finally close socket
     this.sock.close();
     // emit closed

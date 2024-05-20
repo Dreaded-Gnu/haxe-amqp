@@ -9,5 +9,6 @@
   "haxe.enableCompilationServer": true,
   "haxe.configurations": [
     [ "tutorial.hxml" ]
-  ]
+  ],
+  "editor.tabSize": 2
 }
