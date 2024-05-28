@@ -1,5 +1,6 @@
 package amqp;
 
+import amqp.channel.type.Cancel;
 import haxe.Int64;
 import amqp.helper.BytesOutput;
 import amqp.message.Message;
@@ -357,7 +358,7 @@ class Channel extends Emitter {
    * @param config
    * @param callback
    */
-  public function consumeQueue(config:ConsumeQueue, callback:(Message) -> Void):Void {
+  public function consumeQueue(config:ConsumeQueue, consumeCallback:(Message) -> Void, callback:(String) -> Void):Void {
     // fill argument table
     var argt:Dynamic = {};
     if (Reflect.hasField(config, 'priority')) {
@@ -383,9 +384,11 @@ class Channel extends Emitter {
         a = new Array<(Message) -> Void>();
       }
       // push back callback
-      a.push(callback);
+      a.push(consumeCallback);
       // write back
       this.consumer.set(frame.fields.consumerTag, a);
+      // execute normal callback
+      callback(frame.fields.consumerTag);
     });
     // send method
     this.sendOrEnqueue(EncoderDecoderInfo.BasicConsume, fields);
@@ -417,6 +420,19 @@ class Channel extends Emitter {
     });
     // send method
     this.sendOrEnqueue(EncoderDecoderInfo.QueuePurge, config);
+  }
+
+  /**
+   * Cancel a consumer
+   * @param config
+   * @param callback
+   */
+  public function cancel(config:Cancel, callback:() -> Void):Void {
+    this.setExpected(EncoderDecoderInfo.BasicCancelOk, (frame:Dynamic) -> {
+      trace(frame);
+      callback();
+    });
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicCancel, config);
   }
 
   /**

@@ -44,7 +44,7 @@ class Receiver {
               }
               channel.ack(message);
             }
-          });
+          }, (consumerTag:String) -> {});
         });
       });
     });

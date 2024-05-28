@@ -23,12 +23,7 @@ class Client {
   private static function call(num:Int):Int {
     response = null;
     correlationId = Uuid.v4();
-    channel.basicPublish(
-      '',
-      'rpc_queue',
-      Bytes.ofString(Std.string(num), Encoding.UTF8),
-      {replyTo: callbackQueue, correlationId: correlationId,}
-    );
+    channel.basicPublish('', 'rpc_queue', Bytes.ofString(Std.string(num), Encoding.UTF8), {replyTo: callbackQueue, correlationId: correlationId,});
     while (response == null) {
       // sleep a second to wait until possible answer
       Sys.sleep(1);
@@ -65,7 +60,7 @@ class Client {
             if (msg.properties.correlationId == correlationId) {
               response = Bytes.ofData(msg.content.getData());
             }
-          });
+          }, (consumerTag:String) -> {});
           // call fibonacci rpc
           trace(' [x] Requesting fib(30)');
           var response:Int = call(30);

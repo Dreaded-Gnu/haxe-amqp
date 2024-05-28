@@ -388,7 +388,7 @@ class Connection extends Emitter {
    * Remove passed channel from map
    * @param channel
    */
-  public function channelCleanup(channel: Channel):Void {
+  public function channelCleanup(channel:Channel):Void {
     if (this.channelMap.exists(channel.id)) {
       this.channelMap.remove(channel.id);
     }

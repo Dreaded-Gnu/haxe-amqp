@@ -39,7 +39,7 @@ class Worker {
                 Sys.sleep(message.content.length);
                 channel.ack(message);
               }
-            });
+            }, (consumerTag:String) -> {});
           });
         });
       });

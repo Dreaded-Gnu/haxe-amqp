@@ -1,5 +1,6 @@
 package amqp;
 
+import amqp.channel.type.Cancel;
 import amqp.channel.type.BasicQos;
 import amqp.channel.type.BasicPublish;
 import amqp.helper.Bytes;
@@ -119,7 +120,7 @@ class Channel0 extends Channel {
    * @param config
    * @param callback
    */
-  override public function consumeQueue(config:ConsumeQueue, callback:(Message) -> Void):Void {
+  override public function consumeQueue(config:ConsumeQueue, consumeCallback:(Message) -> Void, callback:(String) -> Void):Void {
     throw new Exception("Unsupported on channel 0");
   }
 
@@ -138,6 +139,15 @@ class Channel0 extends Channel {
    * @param callback
    */
   override public function purgeQueue(config:PurgeQueue, callback:(messageCount:Int) -> Void):Void {
+    throw new Exception("Unsupported on channel 0");
+  }
+
+  /**
+   * Cancel a consumer
+   * @param config
+   * @param callback
+   */
+  override public function cancel(config:Cancel, callback:() -> Void):Void {
     throw new Exception("Unsupported on channel 0");
   }
 

@@ -43,7 +43,7 @@ class ReceiveLog {
             trace('[*] Waiting for logs. To exit press CTRL+C');
             channel.consumeQueue({queue: data.fields.queue, noAck: true,}, (msg:Message) -> {
               trace('[x] ${msg.fields.routingKey}:${msg.content.toString()}');
-            });
+            }, (consumerTag:String) -> {});
           });
         });
       });

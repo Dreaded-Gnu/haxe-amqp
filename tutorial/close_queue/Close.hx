@@ -12,6 +12,7 @@ class Close {
   private static var conn:Connection = null;
   private static var channel:Channel = null;
   private static var timer:Timer = null;
+  private static var consumerId:String = null;
 
   /**
    * Main entry point
@@ -35,26 +36,32 @@ class Close {
       channel = conn.channel((channel:Channel) -> {
         // declare queue
         channel.declareQueue({queue: QUEUE,}, (frame:Dynamic) -> {
+          trace(frame);
           // consume queue
-          channel.consumeQueue({queue: QUEUE}, (message:Message) -> {});
-          // var timer
-          timer = new Timer(5000);
-          timer.run = close;
+          channel.consumeQueue({queue: QUEUE}, (message:Message) -> {}, (id:String) -> {
+            consumerId = id;
+            trace(consumerId);
+            // var timer
+            timer = new Timer(5000);
+            timer.run = close;
+          });
         });
       });
     });
   }
 
   private static function close():Void {
-    trace( "close down test!" );
     // stop timer
     timer.stop();
-    // delete queue again
-    channel.deleteQueue({queue: QUEUE}, (messageCount:Int) -> {
-      // close channel
-      channel.close(() -> {
-        // close connection
-        conn.close();
+    // cancel consume
+    channel.cancel({consumerTag: consumerId}, () -> {
+      // delete queue again
+      channel.deleteQueue({queue: QUEUE}, (messageCount:Int) -> {
+        // close channel
+        channel.close(() -> {
+          // close connection
+          conn.close();
+        });
       });
     });
   }

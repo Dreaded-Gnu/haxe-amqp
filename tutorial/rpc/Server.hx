@@ -54,7 +54,7 @@ class Server {
               channel.basicPublish('', msg.properties.replyTo, Bytes.ofString(Std.string(response), Encoding.UTF8),
                 {correlationId: msg.properties.correlationId});
               channel.ack(msg);
-            });
+            }, (consumerTag:String) -> {});
           });
         });
       });
