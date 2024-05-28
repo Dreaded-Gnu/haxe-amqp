@@ -1,7 +1,6 @@
 package amqp;
 
 import haxe.MainLoop;
-import haxe.Timer;
 import haxe.Exception;
 import sys.net.Host;
 import emitter.signals.Emitter;
@@ -383,6 +382,16 @@ class Connection extends Emitter {
     ch.open(callback);
     // return created channel
     return ch;
+  }
+
+  /**
+   * Remove passed channel from map
+   * @param channel
+   */
+  public function channelCleanup(channel: Channel):Void {
+    if (this.channelMap.exists(channel.id)) {
+      this.channelMap.remove(channel.id);
+    }
   }
 
   /**

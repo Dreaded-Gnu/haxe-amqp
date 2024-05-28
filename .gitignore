@@ -14,6 +14,7 @@ tutorial/rpc/server
 tutorial/rpc/client
 tutorial/ssl/sender
 tutorial/ssl/receiver
+tutorial/close_queue/close_queue
 spec/*.json
 pages
 bin

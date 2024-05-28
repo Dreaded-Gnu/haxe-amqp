@@ -30,6 +30,8 @@ class Channel extends Emitter {
   public static inline var EVENT_ERROR:String = "error";
   public static inline var EVENT_CLOSED:String = "closed";
 
+  public var id(get, never):Int;
+
   private var connection:Connection;
   private var channelId:Int;
   private var state:ChannelState;
@@ -39,6 +41,14 @@ class Channel extends Emitter {
   private var incomingMessage:Message;
   private var incomingMessageBuffer:BytesOutput;
   private var outgoingMessageBuffer:Array<{method:Int, fields:Dynamic}>;
+
+  /**
+   * Getter for property id
+   * @return Int
+   */
+  private function get_id():Int {
+    return channelId;
+  }
 
   /**
    * Helper to validate expected frame
@@ -65,6 +75,10 @@ class Channel extends Emitter {
    * @param fields
    */
   private function sendOrEnqueue(method:Int, fields:Dynamic):Void {
+    // handle closed
+    if (this.state == ChannelStateClosed) {
+      return;
+    }
     // if one callback is in list, it will be sent out
     if (this.expectedCallback.length <= 1) {
       this.connection.sendMethod(this.channelId, method, fields);
@@ -239,9 +253,23 @@ class Channel extends Emitter {
    * @param callback
    */
   public function close(callback:() -> Void):Void {
+    // handle state closed by executing the callback immediately
+    if (this.state == ChannelStateClosed) {
+      callback();
+      return;
+    }
+    // set expected
     this.setExpected(EncoderDecoderInfo.ChannelCloseOk, (frame:Dynamic) -> {
+      // set state to closed
+      this.state = ChannelStateClosed;
+      // remove consumer
+      this.consumer.clear();
+      // remove channel from connection
+      this.connection.channelCleanup(this);
+      // execute callback
       callback();
     });
+    // send or enqueue
     this.sendOrEnqueue(EncoderDecoderInfo.ChannelClose, {
       replyText: 'Goodbye',
       replyCode: Constant.REPLY_SUCCESS,

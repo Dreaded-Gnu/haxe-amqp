@@ -1,6 +1,5 @@
 package amqp.helper;
 
-import haxe.io.Eof;
 import haxe.Int64;
 import amqp.helper.Bytes;
 

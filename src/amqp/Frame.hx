@@ -6,7 +6,6 @@ import amqp.frame.type.FrameMethodType;
 import amqp.frame.type.FrameType;
 import haxe.io.Input;
 import amqp.helper.BytesInput;
-import haxe.io.Encoding;
 import haxe.io.BytesOutput;
 import haxe.Exception;
 import amqp.helper.Bytes;

@@ -74,3 +74,8 @@
 -cp tutorial/ssl
 -main tutorial.ssl.Receiver
 -cpp tutorial/ssl/receiver
+--next
+
+-cp tutorial/close_queue
+-main tutorial.close_queue.Close
+-cpp tutorial/close_queue/close_queue
