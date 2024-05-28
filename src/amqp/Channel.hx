@@ -429,7 +429,9 @@ class Channel extends Emitter {
    */
   public function cancel(config:Cancel, callback:() -> Void):Void {
     this.setExpected(EncoderDecoderInfo.BasicCancelOk, (frame:Dynamic) -> {
-      trace(frame);
+      // remove consumers
+      this.consumer.remove(config.consumerTag);
+      // execute callback
       callback();
     });
     this.sendOrEnqueue(EncoderDecoderInfo.BasicCancel, config);
