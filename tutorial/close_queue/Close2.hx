@@ -6,13 +6,10 @@ import amqp.Channel;
 import amqp.Connection;
 import amqp.connection.Config;
 
-class Close {
+class Close2 {
   private static inline var QUEUE:String = 'hello';
-  private static inline var MESSAGE:String = 'hello world!';
   private static var conn:Connection = null;
   private static var channel:Channel = null;
-  private static var timer:Timer = null;
-  private static var consumerId:String = null;
 
   /**
    * Main entry point
@@ -43,33 +40,19 @@ class Close {
           trace(frame);
           // consume queue
           channel.consumeQueue({queue: QUEUE}, (message:Message) -> {}, (id:String) -> {
-            consumerId = id;
-            trace(consumerId);
-            // var timer
-            timer = new Timer(5000);
-            timer.run = close;
+            trace("cancel!");
+            channel.cancel({consumerTag: id}, () -> {});
+            trace("delete queue!");
+            // delete queue again
+            channel.deleteQueue({queue: QUEUE}, (messageCount:Int) -> {});
+            trace("close channel!");
+            // close channel
+            channel.close(() -> {
+              trace("close connection!");
+              // close connection
+              conn.close();
+            });
           });
-        });
-      });
-    });
-  }
-
-  private static function close():Void {
-    trace("timer stop!");
-    // stop timer
-    timer.stop();
-    trace("cancel consume!");
-    // cancel consume
-    channel.cancel({consumerTag: consumerId}, () -> {
-      trace("delete queue!");
-      // delete queue again
-      channel.deleteQueue({queue: QUEUE}, (messageCount:Int) -> {
-        trace("close channel!");
-        // close channel
-        channel.close(() -> {
-          trace("close connection!");
-          // close connection
-          conn.close();
         });
       });
     });

@@ -250,14 +250,4 @@ class Channel0 extends Channel {
   override public function reject(message:Message, requeue:Bool = false):Void {
     throw new Exception("Unsupported on channel 0");
   }
-
-  /**
-   * Shutdown method
-   */
-  override public function shutdown():Void {
-    this.expectedCallback = [];
-    this.expectedFrame = [];
-    this.state = ChannelStateClosed;
-    this.emit(Channel.EVENT_CLOSED, "shutdown");
-  }
 }

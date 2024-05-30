@@ -273,14 +273,10 @@ class Connection extends Emitter {
     this.sock.setTimeout(Math.max(this.config.writeTimeout, this.config.readTimeout));
     // connect to host
     this.sock.connect(new Host(this.config.host), this.config.port);
-    // enable blocking and fast send
+    // disable blocking and set fast send
     this.sock.setBlocking(false);
     this.sock.setFastSend(true);
     this.closed = false;
-    // perform ssl handshake
-    if (this.config.isSecure) {
-      cast(this.sock, sys.ssl.Socket).handshake();
-    }
 
     // get opening frame content
     var openFrameData:TOpenFrame = openFrames();

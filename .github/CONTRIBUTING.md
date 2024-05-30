@@ -37,14 +37,14 @@ Once the repository has been checked out and everything has been prepared, you'r
 
 Short branch breakdown
 
-- `master` - Make your change at the `master` branch in case that it is an *urgent* hotfix
+- `main` - Make your change at the `main` branch in case that it is an *urgent* hotfix
 - `develop` - Make your change at the `develop` branch, when it's a *non-urgent* bugfix or feature.
 
 The change should be made directly to the correct branch within your fork or to a branch, branched from the correct branch listed above. Also ensure, that there is an issue existing for the change you want to submit.
 
 ### Testing Your change
 
-You can test your change by adjusting the `Main.hx` temporarily and then run `npm start` or `openfl test html5 -debug -verbose`.
+You can test your change via existing tutorials or by adding new ones.
 
 ### Submitting Your change
 
@@ -57,7 +57,7 @@ Once all discussions have been completed, and the related issue is scheduled wit
 - Use 2 spaces for tabs, never tab characters.
 - No trailing whitespace and consecutive blank lines, blank lines should have no whitespace.
 - Follow conventions already in the code.
-- Use haxe formatter to format your code after you're done with changes: `haxelib run formatter -s src`
+- Use haxe formatter to format your code after you're done with changes: `haxelib run formatter -s src` `haxelib run formatter -s tutorial`
 
 ## Contributor Code of Conduct
 

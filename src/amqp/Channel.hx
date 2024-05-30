@@ -24,6 +24,13 @@ import amqp.channel.type.BindQueue;
 import amqp.channel.type.DeclareExchange;
 import amqp.channel.type.BasicQos;
 
+typedef OutgoingMessage = {
+  var method:Int;
+  var fields:Dynamic;
+  var expectedMethod:Int;
+  var callback:(Dynamic) -> Void;
+};
+
 class Channel extends Emitter {
   public static inline var EVENT_ACK:String = "ack";
   public static inline var EVENT_NACK:String = "nack";
@@ -41,7 +48,7 @@ class Channel extends Emitter {
   private var consumer:Map<String, Array<(Message) -> Void>>;
   private var incomingMessage:Message;
   private var incomingMessageBuffer:BytesOutput;
-  private var outgoingMessageBuffer:Array<{method:Int, fields:Dynamic}>;
+  private var outgoingMessageBuffer:Array<OutgoingMessage>;
 
   /**
    * Getter for property id
@@ -75,18 +82,29 @@ class Channel extends Emitter {
    * @param method
    * @param fields
    */
-  private function sendOrEnqueue(method:Int, fields:Dynamic):Void {
+  private function sendOrEnqueue(method:Int, fields:Dynamic, expectedMethod:Int, callback:(Dynamic) -> Void):Void {
     // handle closed
     if (this.state == ChannelStateClosed) {
       return;
     }
     // if one callback is in list, it will be sent out
-    if (this.expectedCallback.length <= 1) {
+    if (this.expectedCallback.length == 0 && this.outgoingMessageBuffer.length == 0) {
+      // set expected
+      if (expectedMethod != -1 && callback != null) {
+        this.setExpected(expectedMethod, callback);
+      }
+      // execute send method
       this.connection.sendMethod(this.channelId, method, fields);
+      // skip rest
       return;
     }
     // there is something ongoing so push to buffer
-    this.outgoingMessageBuffer.push({method: method, fields: fields,});
+    this.outgoingMessageBuffer.push({
+      method: method,
+      fields: fields,
+      expectedMethod: expectedMethod,
+      callback: callback,
+    });
   }
 
   /**
@@ -105,7 +123,7 @@ class Channel extends Emitter {
     this.consumer = new Map<String, Array<(Message) -> Void>>();
     this.incomingMessage = null;
     this.incomingMessageBuffer = new BytesOutput();
-    this.outgoingMessageBuffer = [];
+    this.outgoingMessageBuffer = new Array<OutgoingMessage>();
   }
 
   /**
@@ -221,12 +239,20 @@ class Channel extends Emitter {
         // set state to closed
         this.state = ChannelStateClosed;
       default:
-        // shift first element of pending messages
-        var msg = this.outgoingMessageBuffer.shift();
-        // handle message existing
-        if (msg != null) {
-          // send method
-          this.connection.sendMethod(this.channelId, msg.method, msg.fields);
+        if (this.outgoingMessageBuffer.length > 0 && this.expectedCallback.length == 0) {
+          // get first element of pending messages
+          var msg = this.outgoingMessageBuffer[0];
+          // handle message existing
+          if (msg != null) {
+            // set expected
+            if (msg.expectedMethod != -1 && msg.callback != null) {
+              this.setExpected(msg.expectedMethod, msg.callback);
+            }
+            // send method
+            this.connection.sendMethod(this.channelId, msg.method, msg.fields);
+            // shift first element
+            this.outgoingMessageBuffer.shift();
+          }
         }
     }
   }
@@ -238,15 +264,13 @@ class Channel extends Emitter {
   public function open(callback:(Channel) -> Void):Void {
     // set channel state
     this.state = ChannelStateInit;
-    // set expected
-    this.setExpected(EncoderDecoderInfo.ChannelOpenOk, (frame:Dynamic) -> {
+    // send channel open
+    this.sendOrEnqueue(EncoderDecoderInfo.ChannelOpen, {outOfBand: ""}, EncoderDecoderInfo.ChannelOpenOk, (frame:Dynamic) -> {
       // set state to open
       this.state = ChannelStateOpen;
       // call callback
       callback(this);
     });
-    // send channel open
-    this.sendOrEnqueue(EncoderDecoderInfo.ChannelOpen, {outOfBand: ""});
   }
 
   /**
@@ -259,8 +283,13 @@ class Channel extends Emitter {
       callback();
       return;
     }
-    // set expected
-    this.setExpected(EncoderDecoderInfo.ChannelCloseOk, (frame:Dynamic) -> {
+    // send or enqueue
+    this.sendOrEnqueue(EncoderDecoderInfo.ChannelClose, {
+      replyText: 'Goodbye',
+      replyCode: Constant.REPLY_SUCCESS,
+      methodId: 0,
+      classId: 0,
+    }, EncoderDecoderInfo.ChannelCloseOk, (frame:Dynamic) -> {
       // set state to closed
       this.state = ChannelStateClosed;
       // remove consumer
@@ -269,13 +298,6 @@ class Channel extends Emitter {
       this.connection.channelCleanup(this);
       // execute callback
       callback();
-    });
-    // send or enqueue
-    this.sendOrEnqueue(EncoderDecoderInfo.ChannelClose, {
-      replyText: 'Goodbye',
-      replyCode: Constant.REPLY_SUCCESS,
-      methodId: 0,
-      classId: 0,
     });
   }
 
@@ -323,10 +345,9 @@ class Channel extends Emitter {
       nowait: config.nowait,
     };
 
-    this.setExpected(EncoderDecoderInfo.QueueDeclareOk, (frame:Dynamic) -> {
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueDeclare, fields, EncoderDecoderInfo.QueueDeclareOk, (frame:Dynamic) -> {
       callback(frame);
     });
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueDeclare, fields);
   }
 
   /**
@@ -335,10 +356,9 @@ class Channel extends Emitter {
    * @param callback
    */
   public function bindQueue(options:BindQueue, callback:() -> Void):Void {
-    this.setExpected(EncoderDecoderInfo.QueueBindOk, (frame:Dynamic) -> {
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueBind, options, EncoderDecoderInfo.QueueBindOk, (frame:Dynamic) -> {
       callback();
     });
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueBind, options);
   }
 
   /**
@@ -347,10 +367,9 @@ class Channel extends Emitter {
    * @param callback
    */
   public function unbindQueue(options:UnbindQueue, callback:() -> Void):Void {
-    this.setExpected(EncoderDecoderInfo.QueueUnbindOk, (frame:Dynamic) -> {
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueUnbind, options, EncoderDecoderInfo.QueueUnbindOk, (frame:Dynamic) -> {
       callback();
     });
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueUnbind, options);
   }
 
   /**
@@ -375,8 +394,8 @@ class Channel extends Emitter {
       exclusive: config.exclusive,
       nowait: config.nowait,
     };
-    // set expected frame and callback
-    this.setExpected(EncoderDecoderInfo.BasicConsumeOk, (frame:Dynamic) -> {
+    // send method
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicConsume, fields, EncoderDecoderInfo.BasicConsumeOk, (frame:Dynamic) -> {
       // get bound callbacks
       var a:Array<(Message) -> Void> = this.consumer.get(frame.fields.consumerTag);
       // handle no callback existing
@@ -390,8 +409,6 @@ class Channel extends Emitter {
       // execute normal callback
       callback(frame.fields.consumerTag);
     });
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.BasicConsume, fields);
   }
 
   /**
@@ -400,12 +417,10 @@ class Channel extends Emitter {
    * @param callback
    */
   public function deleteQueue(config:DeleteQueue, callback:(messageCount:Int) -> Void):Void {
-    // set expected frame and callback
-    this.setExpected(EncoderDecoderInfo.QueueDeleteOk, (frame:Dynamic) -> {
+    // send method
+    this.sendOrEnqueue(EncoderDecoderInfo.QueueDelete, config, EncoderDecoderInfo.QueueDeleteOk, (frame:Dynamic) -> {
       callback(frame.fields.messageCount);
     });
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueDelete, config);
   }
 
   /**
@@ -414,12 +429,10 @@ class Channel extends Emitter {
    * @param callback
    */
   public function purgeQueue(config:PurgeQueue, callback:(messageCount:Int) -> Void):Void {
-    // set expected frame and callback
-    this.setExpected(EncoderDecoderInfo.QueuePurgeOk, (frame:Dynamic) -> {
+    // send method
+    this.sendOrEnqueue(EncoderDecoderInfo.QueuePurge, config, EncoderDecoderInfo.QueuePurgeOk, (frame:Dynamic) -> {
       callback(frame.fields.messageCount);
     });
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.QueuePurge, config);
   }
 
   /**
@@ -428,13 +441,12 @@ class Channel extends Emitter {
    * @param callback
    */
   public function cancel(config:Cancel, callback:() -> Void):Void {
-    this.setExpected(EncoderDecoderInfo.BasicCancelOk, (frame:Dynamic) -> {
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicCancel, config, EncoderDecoderInfo.BasicCancelOk, (frame:Dynamic) -> {
       // remove consumers
       this.consumer.remove(config.consumerTag);
       // execute callback
       callback();
     });
-    this.sendOrEnqueue(EncoderDecoderInfo.BasicCancel, config);
   }
 
   /**
@@ -459,12 +471,10 @@ class Channel extends Emitter {
       nowait: config.nowait,
       arguments: arg
     };
-    // set expected
-    this.setExpected(EncoderDecoderInfo.ExchangeDeclareOk, (frame:Dynamic) -> {
+    // send method
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDeclare, fields, EncoderDecoderInfo.ExchangeDeclareOk, (frame:Dynamic) -> {
       callback();
     });
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDeclare, fields);
   }
 
   /**
@@ -473,12 +483,10 @@ class Channel extends Emitter {
    * @param callback
    */
   public function deleteExchange(config:DeleteExchange, callback:() -> Void):Void {
-    // set expected frame and callback
-    this.setExpected(EncoderDecoderInfo.ExchangeDeleteOk, (frame:Dynamic) -> {
+    // send method
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDelete, config, EncoderDecoderInfo.ExchangeDeleteOk, (frame:Dynamic) -> {
       callback();
     });
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDelete, config);
   }
 
   /**
@@ -487,12 +495,10 @@ class Channel extends Emitter {
    * @param callback
    */
   public function bindExchange(config:BindExchange, callback:() -> Void):Void {
-    // set expected frame and callback
-    this.setExpected(EncoderDecoderInfo.ExchangeBindOk, (frame:Dynamic) -> {
+    // send method
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeBind, config, EncoderDecoderInfo.ExchangeBindOk, (frame:Dynamic) -> {
       callback();
     });
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeBind, config);
   }
 
   /**
@@ -501,12 +507,10 @@ class Channel extends Emitter {
    * @param callback
    */
   public function unbindExchange(config:UnbindExchange, callback:() -> Void):Void {
-    // set expected frame and callback
-    this.setExpected(EncoderDecoderInfo.ExchangeUnbindOk, (frame:Dynamic) -> {
+    // send method
+    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeUnbind, config, EncoderDecoderInfo.ExchangeUnbindOk, (frame:Dynamic) -> {
       callback();
     });
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeUnbind, config);
   }
 
   /**
@@ -566,10 +570,9 @@ class Channel extends Emitter {
    * @return ->Void):Void
    */
   public function basicQos(option:BasicQos, callback:() -> Void):Void {
-    this.setExpected(EncoderDecoderInfo.BasicQosOk, (frame:Dynamic) -> {
+    this.sendOrEnqueue(EncoderDecoderInfo.BasicQos, option, EncoderDecoderInfo.BasicQosOk, (frame:Dynamic) -> {
       callback();
     });
-    this.sendOrEnqueue(EncoderDecoderInfo.BasicQos, option);
   }
 
   /**
@@ -581,7 +584,7 @@ class Channel extends Emitter {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicAck, {
       deliveryTag: message.fields.deliveryTag,
       multiple: allUpTo,
-    });
+    }, -1, null);
   }
 
   /**
@@ -591,7 +594,7 @@ class Channel extends Emitter {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicAck, {
       deliveryTag: 0,
       multiple: true,
-    });
+    }, -1, null);
   }
 
   /**
@@ -605,7 +608,7 @@ class Channel extends Emitter {
       deliveryTag: message.fields.deliveryTag,
       multiple: allUpTo,
       requeue: requeue,
-    });
+    }, -1, null);
   }
 
   /**
@@ -617,7 +620,7 @@ class Channel extends Emitter {
       deliveryTag: 0,
       multiple: true,
       requeue: requeue,
-    });
+    }, -1, null);
   }
 
   /**
@@ -629,7 +632,7 @@ class Channel extends Emitter {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicReject, {
       deliveryTag: message.fields.deliveryTag,
       requeue: requeue,
-    });
+    }, -1, null);
   }
 
   /**
