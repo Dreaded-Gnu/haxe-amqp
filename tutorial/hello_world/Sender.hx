@@ -43,6 +43,8 @@ class Sender {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

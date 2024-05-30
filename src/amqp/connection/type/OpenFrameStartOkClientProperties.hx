@@ -8,22 +8,27 @@ typedef OpenFrameStartOkClientProperties = {
    * product
    */
   var product:String;
+
   /**
    * version
    */
   var version:String;
+
   /**
    * platform
    */
   var platform:String;
+
   /**
    * copyright
    */
   var copyright:String;
+
   /**
    * information
    */
   var information:String;
+
   /**
    * capabilities
    */

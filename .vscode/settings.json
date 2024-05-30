@@ -10,5 +10,6 @@
   "haxe.configurations": [
     [ "tutorial.hxml" ]
   ],
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  "files.trimTrailingWhitespace": true
 }

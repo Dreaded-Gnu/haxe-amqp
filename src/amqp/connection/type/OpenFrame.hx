@@ -12,10 +12,12 @@ typedef OpenFrame = {
    * Start ok
    */
   var startOk:OpenFrameStartOk;
+
   /**
    * tune ok
    */
   var tuneOk:OpenFrameTuneOk;
+
   /**
    * open
    */

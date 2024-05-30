@@ -43,6 +43,8 @@ class Worker {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

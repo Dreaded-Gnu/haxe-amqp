@@ -20,10 +20,12 @@ class Frame {
    * Protocol header
    */
   public static var PROTOCOL_HEADER(get, never):String;
+
   /**
    * Heartbeat object
    */
   public static var HEARTBEAT(get, never):Dynamic;
+
   /**
    * Heartbeat buffer
    */

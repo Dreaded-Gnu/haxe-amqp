@@ -58,6 +58,8 @@ class Server {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

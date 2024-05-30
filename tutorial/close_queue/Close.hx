@@ -51,6 +51,8 @@ class Close {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 

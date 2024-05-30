@@ -11,14 +11,17 @@ typedef FrameType = {
    * type
    */
   var type:Int;
+
   /**
    * channel
    */
   var channel:Int;
+
   /**
    * size
    */
   var size:Int32;
+
   /**
    * remaining bytes
    */

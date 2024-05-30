@@ -67,6 +67,8 @@ class Client {
           trace(' [.] Got ${response}');
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

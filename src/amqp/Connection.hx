@@ -21,14 +21,17 @@ class Connection extends Emitter {
    * Event thrown when connection is closed
    */
   public static inline var EVENT_CLOSED:String = "closed";
+
   /**
    * Event thrown when error is detected
    */
   public static inline var EVENT_ERROR:String = "error";
+
   /**
    * Event thrown when connection is blocked
    */
   public static inline var EVENT_BLOCKED:String = "blocked";
+
   /**
    * Event thrown when connection is unblocked again
    */
@@ -40,6 +43,7 @@ class Connection extends Emitter {
    * Config object
    */
   public var config(default, null):Config;
+
   /**
    * heartbeat status flag
    */
@@ -272,9 +276,10 @@ class Connection extends Emitter {
 
   /**
    * Connect to amqp with performing handshake
-   * @param callback callback executed once connection handshake is done
+   * @param successCallback callback executed once connection handshake is
+   * @param failureCallback callback executed when connection failed
    */
-  public function connect(callback:() -> Void):Void {
+  public function connect(successCallback:() -> Void, failureCallback:() -> Void):Void {
     // generate socket
     if (this.config.isSecure) {
       // create ssl socket
@@ -291,7 +296,12 @@ class Connection extends Emitter {
     // set socket timeout
     this.sock.setTimeout(Math.max(this.config.writeTimeout, this.config.readTimeout));
     // connect to host
-    this.sock.connect(new Host(this.config.host), this.config.port);
+    try {
+      this.sock.connect(new Host(this.config.host), this.config.port);
+    } catch (e:Any) {
+      failureCallback();
+      return;
+    }
     // disable blocking and set fast send
     this.sock.setBlocking(false);
     this.sock.setFastSend(true);
@@ -324,8 +334,8 @@ class Connection extends Emitter {
       this.heartbeat = openFrameData.tuneOk.heartbeat;
       // start heartbeat
       this.startHeartbeat();
-      // execute callback
-      callback();
+      // execute successCallback
+      successCallback();
     }
 
     function onTuneResponse(frame:Dynamic):Void {

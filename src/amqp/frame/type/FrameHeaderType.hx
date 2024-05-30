@@ -11,14 +11,17 @@ typedef FrameHeaderType = {
    * amqp class
    */
   var klass:Int;
+
   /**
    * weight
    */
   var _weight:Int;
+
   /**
    * size
    */
   var size:Int64;
+
   /**
    * flags and fields as Bytes
    */

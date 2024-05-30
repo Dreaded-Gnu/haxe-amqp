@@ -9,10 +9,12 @@ class Config {
    * plain authentication
    */
   public static inline var AUTH_PLAIN:String = 'PLAIN';
+
   /**
    * Amqp plain authentication
    */
   public static inline var AUTH_AMQPPLAIN:String = 'AMQPLAIN';
+
   /**
    * External authentication
    */
@@ -22,66 +24,82 @@ class Config {
    * Host
    */
   public var host(default, default):String = 'localhost';
+
   /**
    * Port
    */
   public var port(default, set):Int = 5672;
+
   /**
    * User
    */
   public var user(default, default):String = 'guest';
+
   /**
    * Password
    */
   public var password(default, default):String = 'guest';
+
   /**
    * vhost to connect to
    */
   public var vhost(default, set):String = '/';
+
   /**
    * insist flag used during connect
    */
   public var insist(default, default):Bool = false;
+
   /**
    * Login method used during connect
    */
   public var loginMethod(default, set):String = AUTH_PLAIN;
+
   /**
    * Login response used during connect
    */
   public var loginResponse(get, never):String;
+
   /**
    * Wanted locale
    */
   public var locale(default, set):String = 'en_US';
+
   /**
    * Socket read timeout
    */
   public var readTimeout(default, set):Float = 3.0;
+
   /**
    * Socket write timeout
    */
   public var writeTimeout(default, set):Float = 3.0;
+
   /**
    * heart beat delay in seconds used during connect
    */
   public var heartbeat(default, set):Int = 0;
+
   /**
    * Use ssl transport
    */
   public var isSecure(default, set):Bool = false;
+
   /**
    * CA Cert for ssl transport
    */
   public var sslCaCert(default, default):String;
+
   /**
    * Cert for ssl transport
    */
   public var sslCert(default, default):String;
+
   /**
    * Key for ssl transport
    */
   public var sslKey(default, default):String;
+
   /**
    * Verify ssl
    */

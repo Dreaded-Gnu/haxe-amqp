@@ -46,6 +46,8 @@ class EmitLog {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

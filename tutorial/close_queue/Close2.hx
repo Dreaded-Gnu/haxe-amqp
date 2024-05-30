@@ -55,6 +55,8 @@ class Close2 {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

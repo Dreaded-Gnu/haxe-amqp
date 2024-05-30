@@ -11,6 +11,7 @@ class Heartbeat extends Emitter {
    * Event dispatched on heartbeat beat
    */
   public static inline var EVENT_BEAT:String = "beat";
+
   /**
    * Event dispatched on heartbeat timeout
    */

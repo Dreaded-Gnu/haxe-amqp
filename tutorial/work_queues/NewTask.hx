@@ -48,6 +48,8 @@ class NewTask {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

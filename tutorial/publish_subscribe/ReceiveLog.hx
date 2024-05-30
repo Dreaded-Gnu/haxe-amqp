@@ -44,6 +44,8 @@ class ReceiveLog {
           });
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

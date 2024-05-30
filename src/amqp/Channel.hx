@@ -33,18 +33,22 @@ class Channel extends Emitter {
    * Event thrown when acknowledge is received
    */
   public static inline var EVENT_ACK:String = "ack";
+
   /**
    * Event thrown when not acknowledge is received
    */
   public static inline var EVENT_NACK:String = "nack";
+
   /**
    * Event thrown when cancel is received
    */
   public static inline var EVENT_CANCEL:String = "cancel";
+
   /**
    * Event thrown when error is detected
    */
   public static inline var EVENT_ERROR:String = "error";
+
   /**
    * Event thrown when channel is closed
    */

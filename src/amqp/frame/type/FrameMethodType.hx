@@ -11,6 +11,7 @@ typedef FrameMethodType = {
    * id
    */
   var id:Int32;
+
   /**
    * arguments
    */

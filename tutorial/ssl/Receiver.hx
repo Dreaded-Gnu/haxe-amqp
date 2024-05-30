@@ -47,6 +47,8 @@ class Receiver {
           }, (consumerTag:String) -> {});
         });
       });
+    }, () -> {
+      trace('failed to connect');
     });
   }
 }

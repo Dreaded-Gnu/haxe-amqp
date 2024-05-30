@@ -10,14 +10,17 @@ typedef OpenFrameStartOk = {
    * client properties
    */
   var clientProperties:OpenFrameStartOkClientProperties;
+
   /**
    * mechanism
    */
   var mechanism:String;
+
   /**
    * response
    */
   var response:String;
+
   /**
    * locale
    */
