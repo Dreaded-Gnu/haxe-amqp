@@ -3,16 +3,24 @@ package amqp.helper;
 import haxe.io.BytesData;
 import haxe.io.Encoding;
 
+/**
+ * Bytes extension class
+ */
 class Bytes extends haxe.io.Bytes {
   /**
    * Constructor
-   * @param length
-   * @param b
+   * @param length length of bytes
+   * @param b bytes data
    */
   public function new(length:Int, b:BytesData) {
     super(length, b);
   }
 
+  /**
+   * Set 16bit integer at position
+   * @param pos position to use for setting
+   * @param v value to set
+   */
   public inline function setInt16(pos:Int, v:Int):Void {
     #if neko_v21
     untyped $sset16(b, pos, v, false);
@@ -22,6 +30,12 @@ class Bytes extends haxe.io.Bytes {
     #end
   }
 
+  /**
+   * Returns a new `Bytes` instance that contains a copy of `len` bytes of `this` instance, starting at index `pos`.
+   * @param pos position to start at
+   * @param len length of bytes
+   * @return Bytes
+   */
   override public function sub(pos:Int, len:Int):Bytes {
     var bytes:haxe.io.Bytes = super.sub(pos, len);
     return Bytes.ofData(bytes.getData());
@@ -29,7 +43,7 @@ class Bytes extends haxe.io.Bytes {
 
   /**
    * Allocate overwrite taken from bytes implementation
-   * @param length
+   * @param length amount of bytes to allocate
    * @return Bytes
    */
   public static function alloc(length:Int):Bytes {
@@ -39,9 +53,9 @@ class Bytes extends haxe.io.Bytes {
 
   /**
    * Generate bytes from string
-   * @param s
-   * @param encoding
-   * @return Bytes
+   * @param s string to generate bytes form
+   * @param encoding used encoding
+   * @return bytes generated of string
    */
   public static function ofString(s:String, ?encoding:Encoding):Bytes {
     var bytes:haxe.io.Bytes = haxe.io.Bytes.ofString(s, encoding);
@@ -50,7 +64,7 @@ class Bytes extends haxe.io.Bytes {
 
   /**
    * Generate bytes by data
-   * @param b
+   * @param b bytes data
    */
   public static function ofData(b:BytesData) {
     #if flash

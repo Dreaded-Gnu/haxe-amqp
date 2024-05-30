@@ -3,8 +3,17 @@ package amqp;
 import haxe.Timer;
 import emitter.signals.Emitter;
 
+/**
+ * Heartbeat implementation
+ */
 class Heartbeat extends Emitter {
+  /**
+   * Event dispatched on heartbeat beat
+   */
   public static inline var EVENT_BEAT:String = "beat";
+  /**
+   * Event dispatched on heartbeat timeout
+   */
   public static inline var EVENT_TIMEOUT:String = "timeout";
 
   private static inline var MISSED_HEARTBEAT_FOR_TIMEOUT:Int = 2;
@@ -17,8 +26,8 @@ class Heartbeat extends Emitter {
 
   /**
    * Constructor
-   * @param interval
-   * @param checkHeartbeat
+   * @param interval heartbeat interval in seconds
+   * @param checkHeartbeat heartbeat check method
    */
   public function new(interval:Int, checkHeartbeat:() -> Bool) {
     // call parent constructor
@@ -35,7 +44,7 @@ class Heartbeat extends Emitter {
   }
 
   /**
-   * Clear timer
+   * Clear heartbeater
    */
   public function clear():Void {
     // stop timer

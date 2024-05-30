@@ -17,6 +17,6 @@ tutorial/ssl/receiver
 tutorial/close_queue/close_queue
 tutorial/close_queue/close_queue2
 spec/*.json
-pages
+docs
 bin
 cert

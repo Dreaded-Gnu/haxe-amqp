@@ -3,12 +3,15 @@ package amqp.helper;
 import haxe.Int64;
 import amqp.helper.Bytes;
 
+/**
+ * Bytes input extension
+ */
 class BytesInput extends haxe.io.BytesInput {
   /**
    * Constructor
-   * @param b
-   * @param pos
-   * @param len
+   * @param b bytes object
+   * @param pos position
+   * @param len length
    */
   public function new(b:Bytes, ?pos:Int, ?len:Int) {
     super(b, pos, len);
@@ -16,7 +19,7 @@ class BytesInput extends haxe.io.BytesInput {
 
   /**
    * Helper to read int 64
-   * @return Int64
+   * @return 64bit integer
    */
   public function readInt64():Int64 {
     var ch1:Int = readByte();

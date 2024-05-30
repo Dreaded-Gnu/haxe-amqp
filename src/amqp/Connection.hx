@@ -5,7 +5,7 @@ import haxe.Exception;
 import sys.net.Host;
 import emitter.signals.Emitter;
 import amqp.connection.Config;
-import amqp.connection.type.TOpenFrame;
+import amqp.connection.type.OpenFrame;
 import amqp.frame.type.DecodedFrame;
 import amqp.helper.Bytes;
 import amqp.helper.BytesInput;
@@ -17,19 +17,37 @@ import amqp.helper.protocol.Constant;
  * Connection class
  */
 class Connection extends Emitter {
+  /**
+   * Event thrown when connection is closed
+   */
   public static inline var EVENT_CLOSED:String = "closed";
+  /**
+   * Event thrown when error is detected
+   */
   public static inline var EVENT_ERROR:String = "error";
+  /**
+   * Event thrown when connection is blocked
+   */
   public static inline var EVENT_BLOCKED:String = "blocked";
+  /**
+   * Event thrown when connection is unblocked again
+   */
   public static inline var EVENT_UNBLOCKED:String = "unblocked";
 
   private static inline var SINGLE_CHUNK_THRESHOLD:Int = 2048;
 
+  /**
+   * Config object
+   */
   public var config(default, null):Config;
-  public var sock(default, null):sys.net.Socket;
-  public var output(default, null):BytesOutput;
-  public var closed(default, null):Bool;
+  /**
+   * heartbeat status flag
+   */
   public var heartbeatStatus(default, default):Bool;
 
+  private var closed:Bool;
+  private var output:BytesOutput;
+  private var sock:sys.net.Socket;
   private var rest:BytesOutput;
   private var mainEvent:MainEvent;
   private var frame:Frame;
@@ -43,7 +61,7 @@ class Connection extends Emitter {
 
   /**
    * Constructor
-   * @param config
+   * @param config configuration object
    */
   public function new(config:Config) {
     super();
@@ -64,8 +82,9 @@ class Connection extends Emitter {
 
   /**
    * Function returning open frames information for handshake
+   * @return open frame object
    */
-  private function openFrames():TOpenFrame {
+  private function openFrames():OpenFrame {
     return cast {
       // start-ok
       startOk: {
@@ -137,7 +156,7 @@ class Connection extends Emitter {
 
   /**
    * Helper to check heartbeat status with reset
-   * @return Bool
+   * @return heartbeat status
    */
   private function checkHeartbeat():Bool {
     var status:Bool = this.heartbeatStatus;
@@ -238,9 +257,9 @@ class Connection extends Emitter {
 
   /**
    * Helper to negotiate server and desired variable
-   * @param server
-   * @param desired
-   * @return Int
+   * @param server value from server
+   * @param desired desired value
+   * @return negotiated value
    */
   private function negotiate(server:Int, desired:Int):Int {
     if (server == 0 || desired == 0) {
@@ -253,7 +272,7 @@ class Connection extends Emitter {
 
   /**
    * Connect to amqp with performing handshake
-   * @param callback
+   * @param callback callback executed once connection handshake is done
    */
   public function connect(callback:() -> Void):Void {
     // generate socket
@@ -279,7 +298,7 @@ class Connection extends Emitter {
     this.closed = false;
 
     // get opening frame content
-    var openFrameData:TOpenFrame = openFrames();
+    var openFrameData:OpenFrame = openFrames();
 
     // add socket reader to main loop
     this.mainEvent = MainLoop.add(() -> {
@@ -350,7 +369,8 @@ class Connection extends Emitter {
 
   /**
    * Method to close connection
-   * @param reason
+   * @param reason close reason for amqp
+   * @param code close code
    */
   public function close(reason:String = "close", code:Int = Constant.REPLY_SUCCESS):Void {
     // send close
@@ -364,8 +384,8 @@ class Connection extends Emitter {
 
   /**
    * Function generates a new channel
-   * @param callback
-   * @return Channel
+   * @param callback callback executed once channel is opened
+   * @return Newly generated channel
    */
   public function channel(callback:(Channel) -> Void):Channel {
     // get next id
@@ -382,7 +402,7 @@ class Connection extends Emitter {
 
   /**
    * Remove passed channel from map
-   * @param channel
+   * @param channel Channel to cleanup from channel map
    */
   public function channelCleanup(channel:Channel):Void {
     if (this.channelMap.exists(channel.id)) {
@@ -392,8 +412,8 @@ class Connection extends Emitter {
 
   /**
    * Close down with error
-   * @param reason
-   * @param code
+   * @param reason error reason
+   * @param code error code
    */
   public function closeWithError(reason:String, code:Int):Void {
     this.emit(EVENT_ERROR, reason);
@@ -401,10 +421,10 @@ class Connection extends Emitter {
   }
 
   /**
-   * Helper method to send a method
-   * @param channel
-   * @param method
-   * @param fields
+   * Helper method to send
+   * @param channel used channel id
+   * @param method method to send
+   * @param fields fields with data for method
    */
   public function sendMethod(channel:Int, method:Int, fields:Dynamic):Void {
     // encode method
@@ -417,12 +437,13 @@ class Connection extends Emitter {
 
   /**
    * Wrapper to send a message
-   * @param channel
-   * @param method
-   * @param methodFields
-   * @param property
-   * @param propertyFields
-   * @param content
+   * @param channel used channel id
+   * @param method method to send
+   * @param methodFields method fields
+   * @param property property to send
+   * @param propertyFields property fields
+   * @param content content to send
+   * @return written bytes
    */
   public function sendMessage(channel:Int, method:Int, methodFields:Dynamic, property:Int, propertyFields:Dynamic, content:Bytes):Int {
     // encode method and properties
@@ -470,11 +491,11 @@ class Connection extends Emitter {
 
   /**
    * Wrapper to send content
-   * @param channel
-   * @param content
+   * @param channel used channel id
+   * @param content content bytes
    * @return Int
    */
-  public function sendContent(channel:Int, content:Bytes):Int {
+  private function sendContent(channel:Int, content:Bytes):Int {
     var maxBody:Int = this.frameMax - Constant.FRAME_OVERHEAD;
     var offset:Int = 0;
     var written:Int = 0;
@@ -500,7 +521,7 @@ class Connection extends Emitter {
 
   /**
    * Shutdown everything
-   * @param reason
+   * @param reason reason used for shutting down
    */
   public function shutdown(reason:String = "shutdown"):Void {
     // shutdown all channels

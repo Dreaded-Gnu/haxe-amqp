@@ -7,13 +7,14 @@ import haxe.Json;
 import haxe.Exception;
 import amqp.helper.Bytes;
 
+/**
+ * Some static helper for encoding and decoding
+ */
 class Codec {
   /**
    * Helper to encode field value
-   * @param buffer
-   * @param value
-   * @param offset
-   * @return Int
+   * @param buffer buffer to write encoded field value to
+   * @param value value to encode
    */
   private static function EncodeFieldValue(buffer:BytesOutput, value:Dynamic):Void {
     var type = Type.typeof(value);
@@ -148,10 +149,9 @@ class Codec {
 
   /**
    * Helper to encode table
-   * @param buffer
-   * @param val
-   * @param offset
-   * @return Int
+   * @param bytes buffer to write table to
+   * @param val table to write
+   * @return encoded bytes
    */
   public static function EncodeTable(bytes:BytesOutput, val:Dynamic):Bytes {
     var start:Int = bytes.length;
@@ -185,12 +185,15 @@ class Codec {
 
   /**
    * Helper to decode fields
-   * @param buffer
-   * @return Dynamic
+   * @param buffer buffer to read from
+   * @return Decoded field information
    */
   public static function DecodeFields(buffer:Bytes):Dynamic {
-    var fields:Dynamic = {}, offset:Int = 0, size:Int = buffer.length;
-    var len:Int, key:String, val:Dynamic = null;
+    var fields:Dynamic = {};
+    var size:Int = buffer.length;
+    var len:Int;
+    var key:String;
+    var val:Dynamic = null;
 
     var bytesInput:BytesInput = new BytesInput(buffer);
     bytesInput.bigEndian = true;

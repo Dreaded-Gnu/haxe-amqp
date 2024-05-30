@@ -5,59 +5,92 @@ import haxe.Exception;
 import amqp.helper.protocol.Constant;
 
 class Config {
+  /**
+   * plain authentication
+   */
   public static inline var AUTH_PLAIN:String = 'PLAIN';
+  /**
+   * Amqp plain authentication
+   */
   public static inline var AUTH_AMQPPLAIN:String = 'AMQPLAIN';
+  /**
+   * External authentication
+   */
   public static inline var AUTH_EXTERNAL:String = 'EXTERNAL';
 
-  public static inline var IO_TYPE_SOCKET:String = 'socket';
-
-  public var ioType(default, set):String = IO_TYPE_SOCKET;
-  public var isLazy(default, default):Bool = false;
+  /**
+   * Host
+   */
   public var host(default, default):String = 'localhost';
+  /**
+   * Port
+   */
   public var port(default, set):Int = 5672;
+  /**
+   * User
+   */
   public var user(default, default):String = 'guest';
+  /**
+   * Password
+   */
   public var password(default, default):String = 'guest';
+  /**
+   * vhost to connect to
+   */
   public var vhost(default, set):String = '/';
+  /**
+   * insist flag used during connect
+   */
   public var insist(default, default):Bool = false;
+  /**
+   * Login method used during connect
+   */
   public var loginMethod(default, set):String = AUTH_PLAIN;
+  /**
+   * Login response used during connect
+   */
   public var loginResponse(get, never):String;
+  /**
+   * Wanted locale
+   */
   public var locale(default, set):String = 'en_US';
-  public var connectionTimeout(default, set):Float = 3.0;
+  /**
+   * Socket read timeout
+   */
   public var readTimeout(default, set):Float = 3.0;
+  /**
+   * Socket write timeout
+   */
   public var writeTimeout(default, set):Float = 3.0;
-  public var channelRpcTimeout(default, set):Float = 3.0;
+  /**
+   * heart beat delay in seconds used during connect
+   */
   public var heartbeat(default, set):Int = 0;
-  public var keepalive(default, default):Bool = false;
+  /**
+   * Use ssl transport
+   */
   public var isSecure(default, set):Bool = false;
-  public var streamContext(default, set):Dynamic = null;
-  public var sendBufferSize(default, set):Int = 0;
-  public var dispatchSignals(default, default):Bool = true;
-  public var protocolStrictFields(default, default):Bool = false;
+  /**
+   * CA Cert for ssl transport
+   */
   public var sslCaCert(default, default):String;
+  /**
+   * Cert for ssl transport
+   */
   public var sslCert(default, default):String;
+  /**
+   * Key for ssl transport
+   */
   public var sslKey(default, default):String;
+  /**
+   * Verify ssl
+   */
   public var sslVerify(default, set):Null<Bool>;
-  public var sslVerifyName(default, default):Null<Bool>;
-  public var sslPassPhrase(default, default):String;
-  public var sslCiphers(default, default):String;
-  public var sslSecurityLevel(default, default):Null<Int>;
-  public var sslCryptoMethod(default, default):Null<Int>;
-  public var connectionName(default, default):String = '';
-  public var debugPackets(default, default):Bool = false;
-
-  public function new() {}
 
   /**
-   * Setter for ioType property
-   * @param val
-   * @return String
+   * Constructor
    */
-  private function set_ioType(val:String):String {
-    if (val != IO_TYPE_SOCKET) {
-      throw new Exception('IO type can be only socket');
-    }
-    return this.ioType = val;
-  }
+  public function new() {}
 
   /**
    * Setter for port property
@@ -130,18 +163,6 @@ class Config {
   }
 
   /**
-   * Setter for connectionTimeout property
-   * @param timeout
-   * @return Float
-   */
-  private function set_connectionTimeout(timeout:Float):Float {
-    if (0 > timeout) {
-      throw new Exception('negative connection timeout is not allowed');
-    }
-    return this.connectionTimeout = timeout;
-  }
-
-  /**
    * Setter for readTimeout property
    * @param timeout
    * @return Float
@@ -166,18 +187,6 @@ class Config {
   }
 
   /**
-   * Setter for channelRpcTimeout property
-   * @param timeout
-   * @return Float
-   */
-  private function set_channelRpcTimeout(timeout:Float):Float {
-    if (0 > timeout) {
-      throw new Exception('negative channel rpc timeout is not allowed');
-    }
-    return this.channelRpcTimeout = timeout;
-  }
-
-  /**
    * Setter for heartbeat property
    * @param heartbeat
    * @return Int
@@ -199,36 +208,12 @@ class Config {
   }
 
   /**
-   * Setter for streamContext property
-   * @param context
-   * @return Dynamic
-   */
-  private function set_streamContext(context:Dynamic):Dynamic {
-    return this.streamContext = context;
-  }
-
-  /**
-   * Setter for sendBufferSize property
-   * @param size
-   * @return Int
-   */
-  private function set_sendBufferSize(size:Int):Int {
-    if (0 < size) {
-      throw new Exception('Negative send buffer size is not allowed');
-    }
-    return this.sendBufferSize = size;
-  }
-
-  /**
    * Setter for sslVerify property
    * @param val
    * @return Null<Bool>
    */
   private function set_sslVerify(val:Null<Bool>):Null<Bool> {
     this.sslVerify = val;
-    if (null == this.sslVerify || !this.sslVerify) {
-      this.sslVerifyName = false;
-    }
     return this.sslVerify;
   }
 }

@@ -1,6 +1,5 @@
 package amqp;
 
-import amqp.channel.type.Cancel;
 import haxe.Int64;
 import amqp.helper.BytesOutput;
 import amqp.message.Message;
@@ -23,21 +22,37 @@ import amqp.channel.type.DeleteQueue;
 import amqp.channel.type.BindQueue;
 import amqp.channel.type.DeclareExchange;
 import amqp.channel.type.BasicQos;
+import amqp.channel.type.OutgoingMessage;
+import amqp.channel.type.Cancel;
 
-typedef OutgoingMessage = {
-  var method:Int;
-  var fields:Dynamic;
-  var expectedMethod:Int;
-  var callback:(Dynamic) -> Void;
-};
-
+/**
+ * Channel class
+ */
 class Channel extends Emitter {
+  /**
+   * Event thrown when acknowledge is received
+   */
   public static inline var EVENT_ACK:String = "ack";
+  /**
+   * Event thrown when not acknowledge is received
+   */
   public static inline var EVENT_NACK:String = "nack";
+  /**
+   * Event thrown when cancel is received
+   */
   public static inline var EVENT_CANCEL:String = "cancel";
+  /**
+   * Event thrown when error is detected
+   */
   public static inline var EVENT_ERROR:String = "error";
+  /**
+   * Event thrown when channel is closed
+   */
   public static inline var EVENT_CLOSED:String = "closed";
 
+  /**
+   * Property to get channel id via channel object
+   */
   public var id(get, never):Int;
 
   private var connection:Connection;
@@ -60,7 +75,8 @@ class Channel extends Emitter {
 
   /**
    * Helper to validate expected frame
-   * @param frame
+   * @param expected expected method
+   * @param frame received frame
    */
   private function validateExpectedFrame(expected:Int, frame:Dynamic):Void {
     // handle no expected frame
@@ -79,8 +95,10 @@ class Channel extends Emitter {
 
   /**
    * Send or enqueue a message
-   * @param method
-   * @param fields
+   * @param method method to send
+   * @param fields data for method to send
+   * @param expectedMethod expected return method
+   * @param callback callback to be executed when expectedMethod matches
    */
   private function sendOrEnqueue(method:Int, fields:Dynamic, expectedMethod:Int, callback:(Dynamic) -> Void):Void {
     // handle closed
@@ -109,7 +127,8 @@ class Channel extends Emitter {
 
   /**
    * Constructor
-   * @param connection
+   * @param connection connection instance
+   * @param channelId id of the channel
    */
   public function new(connection:Connection, channelId:Int) {
     // call parent constructor
@@ -128,7 +147,7 @@ class Channel extends Emitter {
 
   /**
    * Force a connection state of the channel
-   * @param state
+   * @param state state to be enforced for this channeö
    */
   public function forceConnectionState(state:ChannelState):Void {
     this.state = state;
@@ -136,9 +155,8 @@ class Channel extends Emitter {
 
   /**
    * Set expected information
-   * @param method
-   * @param callback
-   * @return ->Void):Void
+   * @param method expected method to be set
+   * @param callback expected callback for method to be set
    */
   public function setExpected(method:Int, callback:(Dynamic) -> Void):Void {
     if (null == callback) {
@@ -150,7 +168,7 @@ class Channel extends Emitter {
 
   /**
    * Basic accept method
-   * @param frame
+   * @param frame received decoded frame
    */
   public function accept(frame:Dynamic):Void {
     // check for closed
@@ -259,7 +277,7 @@ class Channel extends Emitter {
 
   /**
    * Method to open the channel
-   * @param callback
+   * @param callback callback executed once channel is opened
    */
   public function open(callback:(Channel) -> Void):Void {
     // set channel state
@@ -275,7 +293,7 @@ class Channel extends Emitter {
 
   /**
    * Close channel
-   * @param callback
+   * @param callback callback to be executed once channel is closed
    */
   public function close(callback:() -> Void):Void {
     // handle state closed by executing the callback immediately
@@ -303,8 +321,8 @@ class Channel extends Emitter {
 
   /**
    * Method to declare a queue
-   * @param config
-   * @param callback
+   * @param config declare queue configuration
+   * @param callback callback executed once queue is declared
    */
   public function declareQueue(config:Queue, callback:(data:Dynamic) -> Void):Void {
     // build arguments dynamic
@@ -352,8 +370,8 @@ class Channel extends Emitter {
 
   /**
    * Bind queue
-   * @param options
-   * @param callback
+   * @param options bind queue options
+   * @param callback callback executed once bind queue was successful
    */
   public function bindQueue(options:BindQueue, callback:() -> Void):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.QueueBind, options, EncoderDecoderInfo.QueueBindOk, (frame:Dynamic) -> {
@@ -363,8 +381,8 @@ class Channel extends Emitter {
 
   /**
    * Unbind a queue
-   * @param options
-   * @param callback
+   * @param options unbind queue options
+   * @param callback callback executed once unbind queue was successful
    */
   public function unbindQueue(options:UnbindQueue, callback:() -> Void):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.QueueUnbind, options, EncoderDecoderInfo.QueueUnbindOk, (frame:Dynamic) -> {
@@ -374,8 +392,9 @@ class Channel extends Emitter {
 
   /**
    * Consume a queue
-   * @param config
-   * @param callback
+   * @param config consume queue configuration
+   * @param consumeCallback callback to be bound for consuming the queue
+   * @param callback callback executed once consume queue was successful
    */
   public function consumeQueue(config:ConsumeQueue, consumeCallback:(Message) -> Void, callback:(String) -> Void):Void {
     // fill argument table
@@ -413,8 +432,8 @@ class Channel extends Emitter {
 
   /**
    * Delete a queue
-   * @param config
-   * @param callback
+   * @param config delete queue config
+   * @param callback callback to be executed once deletion was successful
    */
   public function deleteQueue(config:DeleteQueue, callback:(messageCount:Int) -> Void):Void {
     // send method
@@ -425,8 +444,8 @@ class Channel extends Emitter {
 
   /**
    * Purge a queue
-   * @param config
-   * @param callback
+   * @param config purge queue config
+   * @param callback callback to be executed once purge was successful
    */
   public function purgeQueue(config:PurgeQueue, callback:(messageCount:Int) -> Void):Void {
     // send method
@@ -437,8 +456,8 @@ class Channel extends Emitter {
 
   /**
    * Cancel a consumer
-   * @param config
-   * @param callback
+   * @param config cancel consume config
+   * @param callback callback to be executed once cancel was successful
    */
   public function cancel(config:Cancel, callback:() -> Void):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicCancel, config, EncoderDecoderInfo.BasicCancelOk, (frame:Dynamic) -> {
@@ -451,8 +470,8 @@ class Channel extends Emitter {
 
   /**
    * Declare exchange
-   * @param config
-   * @param callback
+   * @param config declare exchange config
+   * @param callback callback to be executed when successfully done
    */
   public function declareExchange(config:DeclareExchange, callback:() -> Void):Void {
     // build arguments dynamic
@@ -479,8 +498,8 @@ class Channel extends Emitter {
 
   /**
    * Delete an exchange
-   * @param config
-   * @param callback
+   * @param config delete exchange config
+   * @param callback callback to be executed when successfully done
    */
   public function deleteExchange(config:DeleteExchange, callback:() -> Void):Void {
     // send method
@@ -491,8 +510,8 @@ class Channel extends Emitter {
 
   /**
    * Bind an exchange
-   * @param config
-   * @param callback
+   * @param config bind exchange config
+   * @param callback callback to be executed when successfully done
    */
   public function bindExchange(config:BindExchange, callback:() -> Void):Void {
     // send method
@@ -503,8 +522,8 @@ class Channel extends Emitter {
 
   /**
    * Unbind an exchange
-   * @param config
-   * @param callback
+   * @param config unbind exchange config
+   * @param callback callback to be executed when successfully done
    */
   public function unbindExchange(config:UnbindExchange, callback:() -> Void):Void {
     // send method
@@ -515,10 +534,10 @@ class Channel extends Emitter {
 
   /**
    * Basic publish method
-   * @param exchange
-   * @param routingKey
-   * @param message
-   * @param options
+   * @param exchange exchange to publish to
+   * @param routingKey routing key for message
+   * @param message message to send
+   * @param options publish options
    */
   public function basicPublish(exchange:String = '', routingKey:String = '', message:Bytes = null, options:BasicPublish = null):Void {
     if (message == null) {
@@ -565,9 +584,8 @@ class Channel extends Emitter {
 
   /**
    * Basic QOS
-   * @param option
-   * @param callback
-   * @return ->Void):Void
+   * @param config QOS config
+   * @param callback callback to be executed when successfully done
    */
   public function basicQos(option:BasicQos, callback:() -> Void):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicQos, option, EncoderDecoderInfo.BasicQosOk, (frame:Dynamic) -> {
@@ -577,8 +595,8 @@ class Channel extends Emitter {
 
   /**
    * Acknowledge a message
-   * @param message
-   * @param allUpTo
+   * @param message message to acknowledge
+   * @param allUpTo acknowledge all deliveries up to this message
    */
   public function ack(message:Message, allUpTo:Bool = false):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicAck, {
@@ -599,9 +617,9 @@ class Channel extends Emitter {
 
   /**
    * Not acknowledge a message
-   * @param message
-   * @param allUpTo
-   * @param requeue
+   * @param message message to not acknowledge
+   * @param allUpTo not acknowledge all messages up to this message
+   * @param requeue requeue not acknowledged messages
    */
   public function nack(message:Message, allUpTo:Bool = false, requeue:Bool = false):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicNack, {
@@ -613,7 +631,7 @@ class Channel extends Emitter {
 
   /**
    * Not acknowledge all messages
-   * @param requeue
+   * @param requeue requeue not acknowledged messages
    */
   public function nackAll(requeue:Bool = false):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicNack, {
@@ -625,8 +643,8 @@ class Channel extends Emitter {
 
   /**
    * Reject a message
-   * @param message
-   * @param requeue
+   * @param message message to reject
+   * @param requeue requeue rejected message
    */
   public function reject(message:Message, requeue:Bool = false):Void {
     this.sendOrEnqueue(EncoderDecoderInfo.BasicReject, {

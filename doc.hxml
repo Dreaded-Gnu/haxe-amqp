@@ -4,5 +4,8 @@
 --no-output
 --xml bin/types.xml
 -lib format
--lib hxdispatch
+-lib Emitter
 --cpp bin/cpp
+--next
+
+-cmd haxelib run dox -o ./docs -i bin -in amqp -ex amqp.helper.protocol --title "API Reference" -D website "https://github.com/Dreaded-Gnu/haxe-amqp" -D source-path "https://github.com/Dreaded-Gnu/haxe-amqp/tree/main/src/" -D textColor 0x777777 --toplevel-package amqp

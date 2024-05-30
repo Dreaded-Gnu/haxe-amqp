@@ -3,6 +3,9 @@ package amqp.helper;
 import haxe.io.BytesBuffer;
 import haxe.Int64;
 
+/**
+ * BytesOutput extension
+ */
 class BytesOutput extends haxe.io.BytesOutput {
   /**
    * Constructor
@@ -12,8 +15,8 @@ class BytesOutput extends haxe.io.BytesOutput {
   }
 
   /**
-   * Write int64 implementation
-   * @param v
+   * Write int64 to buffer
+   * @param v 64 bit integer to write
    */
   public function writeInt64(v:Int64):Void {
     if (bigEndian) {
@@ -38,7 +41,7 @@ class BytesOutput extends haxe.io.BytesOutput {
   }
 
   /**
-   * Flush override
+   * Flush bytes output
    */
   override public function flush() {
     super.flush();

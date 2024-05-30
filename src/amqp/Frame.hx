@@ -12,9 +12,21 @@ import amqp.helper.Bytes;
 import amqp.helper.protocol.Constant;
 import amqp.helper.protocol.EncoderDecoderInfo;
 
+/**
+ * Frame helper
+ */
 class Frame {
+  /**
+   * Protocol header
+   */
   public static var PROTOCOL_HEADER(get, never):String;
+  /**
+   * Heartbeat object
+   */
   public static var HEARTBEAT(get, never):Dynamic;
+  /**
+   * Heartbeat buffer
+   */
   public static var HEARTBEAT_BUFFER(get, never):Bytes;
 
   /**
@@ -24,7 +36,7 @@ class Frame {
 
   /**
    * Getter for protocol header
-   * @return String
+   * @return Protocol header
    */
   private static function get_PROTOCOL_HEADER():String {
     return "AMQP" + String.fromCharCode(0) + String.fromCharCode(0) + String.fromCharCode(9) + String.fromCharCode(1);
@@ -32,7 +44,7 @@ class Frame {
 
   /**
    * Getter for heartbeat
-   * @return Dynamic
+   * @return heartbeat object
    */
   private static function get_HEARTBEAT():Dynamic {
     return {
@@ -43,7 +55,7 @@ class Frame {
 
   /**
    * Getter for heartbeat buffer
-   * @return Bytes
+   * @return heartbeat buffer
    */
   private static function get_HEARTBEAT_BUFFER():Bytes {
     var bo:BytesOutput = new BytesOutput();
@@ -58,9 +70,9 @@ class Frame {
 
   /**
    * Helper to make body frame
-   * @param channel
-   * @param payload
-   * @return Bytes
+   * @param channel channel to publish frame on
+   * @param payload data to put into body frame
+   * @return Prepared body frame
    */
   public function makeBodyFrame(channel:Int, payload:Bytes):Bytes {
     var bo:BytesOutput = new BytesOutput();
@@ -76,9 +88,11 @@ class Frame {
 
   /**
    * Helper to parse a frame
-   * @param bin
-   * @param max
-   * @return Dynamic
+   * @param bin Input object to parse
+   * @param max max allowed frame size
+   * @return decoded frame object
+   * @throws Exception when max size is exceeded 
+   * @throws Exception when no frame end field was found
    */
   public function parseFrame(bin:Input, max:Int):DecodedFrame {
     var type:Int = bin.readByte();
@@ -120,8 +134,8 @@ class Frame {
 
   /**
    * Helper to decode a frame
-   * @param frame
-   * @return Dynamic
+   * @param frame decoded frame object
+   * @return frame object turned into parsable and readable dynamic
    */
   public function decodeFrame(frame:DecodedFrame):Dynamic {
     var payload:Bytes = frame.payload;
