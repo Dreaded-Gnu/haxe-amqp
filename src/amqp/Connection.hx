@@ -397,9 +397,13 @@ class Connection extends Emitter {
 
     // set expected frame for channel0
     channel.setExpected(EncoderDecoderInfo.ConnectionStart, onProtocolReturn);
+    // acquire mutex
+    this.sockMutex.acquire();
     // send protocol header
     var b:Bytes = Bytes.ofString(Frame.PROTOCOL_HEADER);
     this.sock.output.writeFullBytes(b, 0, b.length);
+    // release mutex
+    this.sockMutex.release();
     // set sent flag
     this.sentSinceLastCheck = true;
   }
