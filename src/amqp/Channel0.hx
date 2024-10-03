@@ -53,8 +53,7 @@ class Channel0 extends Channel {
     }
 
     if (frame.type == Constant.FRAME_HEARTBEAT) {
-      // set heartbeat status flag
-      this.connection.heartbeatStatus = true;
+      // Do nothing on frame heartbeat
     } else if (frame.id == EncoderDecoderInfo.ConnectionClose) {
       // send close ok
       this.connection.sendMethod(0, EncoderDecoderInfo.ConnectionCloseOk, {});

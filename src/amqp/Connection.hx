@@ -45,11 +45,8 @@ class Connection extends Emitter {
    */
   public var config(default, null):Config;
 
-  /**
-   * heartbeat status flag
-   */
-  public var heartbeatStatus(default, default):Bool;
-
+  private var sentSinceLastCheck:Bool;
+  private var receivedSinceLastCheck:Bool;
   private var closed:Bool;
   private var output:BytesOutput;
   private var sock:sys.net.Socket;
@@ -75,9 +72,10 @@ class Connection extends Emitter {
     this.output = new BytesOutput();
     this.frame = new Frame();
     this.frameMax = Constant.FRAME_MIN_SIZE;
-    this.heartbeatStatus = false;
     this.rest = new BytesOutput();
     this.sockMutex = new Mutex();
+    this.sentSinceLastCheck = false;
+    this.receivedSinceLastCheck = false;
   }
 
   /**
@@ -170,8 +168,18 @@ class Connection extends Emitter {
    * @return heartbeat status
    */
   private function checkHeartbeat():Bool {
-    var status:Bool = this.heartbeatStatus;
-    this.heartbeatStatus = false;
+    var status:Bool = this.receivedSinceLastCheck;
+    this.receivedSinceLastCheck = false;
+    return status;
+  }
+
+  /**
+   * Check send method
+   * @return Bool
+   */
+  private function checkSend():Bool {
+    var status:Bool = this.sentSinceLastCheck;
+    this.sentSinceLastCheck = false;
     return status;
   }
 
@@ -189,6 +197,8 @@ class Connection extends Emitter {
     this.sock.output.flush();
     // release mutex
     this.sockMutex.release();
+    // set sent flag
+    this.sentSinceLastCheck = true;
   }
 
   /**
@@ -200,7 +210,7 @@ class Connection extends Emitter {
       return;
     }
     // create heartbeat instance
-    this.heartbeater = new Heartbeat(this.heartbeat, this.checkHeartbeat);
+    this.heartbeater = new Heartbeat(this.heartbeat, this.checkHeartbeat, this.checkSend);
     // attach beat handler
     this.heartbeater.on(Heartbeat.EVENT_BEAT, (hb:Heartbeat) -> {
       if (this.closed) {
@@ -261,6 +271,8 @@ class Connection extends Emitter {
     } else if (parsedFrame.rest.length > 0) {
       this.rest.writeBytes(parsedFrame.rest, 0, parsedFrame.rest.length);
     }
+    // set received since last check to true
+    this.receivedSinceLastCheck = true;
     // return decoded frame
     var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
     // get channel
@@ -388,6 +400,8 @@ class Connection extends Emitter {
     // send protocol header
     var b:Bytes = Bytes.ofString(Frame.PROTOCOL_HEADER);
     this.sock.output.writeFullBytes(b, 0, b.length);
+    // set sent flag
+    this.sentSinceLastCheck = true;
   }
 
   /**
@@ -460,6 +474,8 @@ class Connection extends Emitter {
     this.sock.output.flush();
     // release mutex
     this.sockMutex.release();
+    // set sent flag
+    this.sentSinceLastCheck = true;
   }
 
   /**
@@ -498,6 +514,8 @@ class Connection extends Emitter {
       this.sock.output.flush();
       // release mutex
       this.sockMutex.release();
+      // set sent flag
+      this.sentSinceLastCheck = true;
       // return written length
       return bodyLength;
     }
@@ -520,6 +538,8 @@ class Connection extends Emitter {
     var written:Int = this.sendContent(channel, content);
     // release mutex
     this.sockMutex.release();
+    // set sent flag
+    this.sentSinceLastCheck = true;
     // return written bytes
     return written;
   }

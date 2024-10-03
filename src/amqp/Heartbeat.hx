@@ -20,7 +20,8 @@ class Heartbeat extends Emitter {
   private static inline var MISSED_HEARTBEAT_FOR_TIMEOUT:Int = 2;
 
   private var interval:Int;
-  private var checkHeartbeat:() -> Bool;
+  private var checkReceive:() -> Bool;
+  private var checkSend:() -> Bool;
   private var sendTimer:Timer;
   private var checkTimer:Timer;
   private var missedBeats:Int;
@@ -28,14 +29,16 @@ class Heartbeat extends Emitter {
   /**
    * Constructor
    * @param interval heartbeat interval in seconds
-   * @param checkHeartbeat heartbeat check method
+   * @param checkReceive check received method
+   * @param checkSend check sent method
    */
-  public function new(interval:Int, checkHeartbeat:() -> Bool) {
+  public function new(interval:Int, checkReceive:() -> Bool, checkSend:() -> Bool) {
     // call parent constructor
     super();
     // save parameters to properties
     this.interval = interval * 1000; // store interval in milliseconds
-    this.checkHeartbeat = checkHeartbeat;
+    this.checkReceive = checkReceive;
+    this.checkSend = checkSend;
     this.missedBeats = 0;
     // set timer
     this.sendTimer = new Timer(Std.int(this.interval / 2));
@@ -60,6 +63,11 @@ class Heartbeat extends Emitter {
    * Send callback
    */
   private function send():Void {
+    // check for send
+    if (!this.checkSend()) {
+      this.emit(EVENT_TIMEOUT, this);
+      return;
+    }
     // emit beat event
     this.emit(EVENT_BEAT, this);
   }
@@ -69,7 +77,7 @@ class Heartbeat extends Emitter {
    */
   private function receive():Void {
     // check for timeout
-    if (!this.checkHeartbeat()) {
+    if (!this.checkReceive()) {
       this.missedBeats++;
     } else {
       this.missedBeats = 0;
