@@ -3,6 +3,7 @@ package amqp;
 import haxe.MainLoop;
 import haxe.Exception;
 import sys.net.Host;
+import sys.thread.Mutex;
 import emitter.signals.Emitter;
 import amqp.connection.Config;
 import amqp.connection.type.OpenFrame;
@@ -52,6 +53,7 @@ class Connection extends Emitter {
   private var closed:Bool;
   private var output:BytesOutput;
   private var sock:sys.net.Socket;
+  private var sockMutex:Mutex;
   private var rest:BytesOutput;
   private var mainEvent:MainEvent;
   private var frame:Frame;
@@ -75,6 +77,7 @@ class Connection extends Emitter {
     this.frameMax = Constant.FRAME_MIN_SIZE;
     this.heartbeatStatus = false;
     this.rest = new BytesOutput();
+    this.sockMutex = new Mutex();
   }
 
   /**
@@ -135,6 +138,8 @@ class Connection extends Emitter {
     if (this.closed) {
       return;
     }
+    // aquire mutex
+    this.sockMutex.acquire();
     // we've valid data for read
     try {
       while (true) {
@@ -154,6 +159,8 @@ class Connection extends Emitter {
         trace('Uncaught: ${e}'); // throw e;
       }
     }
+    // release mutex
+    this.sockMutex.release();
     // execute receive acceptor
     this.receiveAcceptor();
   }
@@ -172,12 +179,16 @@ class Connection extends Emitter {
    * Helper to send heartbeat
    */
   private function sendHeartbeat():Void {
+    // aquire mutex
+    this.sockMutex.acquire();
     // get heartbeat buffer
     var bytes:Bytes = Frame.HEARTBEAT_BUFFER;
     // just send it
     this.sock.output.writeFullBytes(bytes, 0, bytes.length);
     // flush socket output
     this.sock.output.flush();
+    // release mutex
+    this.sockMutex.release();
   }
 
   /**
@@ -242,11 +253,13 @@ class Connection extends Emitter {
     input.bigEndian = true;
     // parse frame
     var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
-    // handle possible further stuff
-    if (parsedFrame.rest.length > 0) {
-      this.rest.writeBytes(parsedFrame.rest, 0, parsedFrame.rest.length);
-    } else if (parsedFrame == null) {
+    // handle no complete frame
+    if (parsedFrame == null) {
       this.rest.writeBytes(bytes, 0, bytes.length);
+      return;
+      // handle possible further stuff
+    } else if (parsedFrame.rest.length > 0) {
+      this.rest.writeBytes(parsedFrame.rest, 0, parsedFrame.rest.length);
     }
     // return decoded frame
     var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
@@ -437,12 +450,16 @@ class Connection extends Emitter {
    * @param fields fields with data for method
    */
   public function sendMethod(channel:Int, method:Int, fields:Dynamic):Void {
+    // acquire mutex
+    this.sockMutex.acquire();
     // encode method
     var frame:Bytes = EncoderDecoderInfo.encodeMethod(method, channel, fields);
     // write to network
     this.sock.output.writeFullBytes(frame, 0, frame.length);
     // flush socket output
     this.sock.output.flush();
+    // release mutex
+    this.sockMutex.release();
   }
 
   /**
@@ -464,6 +481,9 @@ class Connection extends Emitter {
     var bodyLength:Int = content.length > 0 ? content.length + Constant.FRAME_OVERHEAD : 0;
     var totalLength:Int = methodHeaderLength + bodyLength;
 
+    // acquire mutex
+    this.sockMutex.acquire();
+    // handle sendable within a single chunk
     if (totalLength < SINGLE_CHUNK_THRESHOLD) {
       // build send package
       var output:BytesOutput = new BytesOutput();
@@ -476,10 +496,11 @@ class Connection extends Emitter {
       // write to network
       this.sock.output.writeFullBytes(frame, 0, frame.length);
       this.sock.output.flush();
+      // release mutex
+      this.sockMutex.release();
       // return written length
       return bodyLength;
     }
-
     // write mframe and pframe
     if (methodHeaderLength < SINGLE_CHUNK_THRESHOLD) {
       // build send package
@@ -496,7 +517,11 @@ class Connection extends Emitter {
       this.sock.output.writeFullBytes(pframe, 0, pframe.length);
     }
     // send content finally
-    return this.sendContent(channel, content);
+    var written:Int = this.sendContent(channel, content);
+    // release mutex
+    this.sockMutex.release();
+    // return written bytes
+    return written;
   }
 
   /**
