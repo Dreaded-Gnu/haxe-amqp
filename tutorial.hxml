@@ -4,6 +4,10 @@
 # following is only necessary for vscode
 -lib utest
 -lib uuid
+--define HXCPP_CHECK_POINTER
+--define HXCPP_STACK_VARS
+--define HXCPP_STACK_LINE
+--define HXCPP_STACK_TRACE
 --each
 
 -cp tutorial/hello_world

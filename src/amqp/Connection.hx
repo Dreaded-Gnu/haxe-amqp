@@ -4,6 +4,7 @@ import haxe.MainLoop;
 import haxe.Exception;
 import sys.net.Host;
 import sys.thread.Mutex;
+import sys.thread.Thread;
 import emitter.signals.Emitter;
 import amqp.connection.Config;
 import amqp.connection.type.OpenFrame;
@@ -52,7 +53,6 @@ class Connection extends Emitter {
   private var sock:sys.net.Socket;
   private var sockMutex:Mutex;
   private var rest:BytesOutput;
-  private var mainEvent:MainEvent;
   private var frame:Frame;
   private var channelMap:Map<Int, Channel>;
   private var serverProperties:Dynamic;
@@ -133,9 +133,6 @@ class Connection extends Emitter {
    * Socket reader called from main loop
    */
   private function socketReaderMainLoop():Void {
-    if (this.closed) {
-      return;
-    }
     // aquire mutex
     this.sockMutex.acquire();
     // we've valid data for read
@@ -336,9 +333,17 @@ class Connection extends Emitter {
     var openFrameData:OpenFrame = openFrames();
 
     // add socket reader to main loop
-    this.mainEvent = MainLoop.add(() -> {
-      this.socketReaderMainLoop();
-      Sys.sleep(0.01);
+    Thread.createWithEventLoop(() -> {
+      while (!this.closed) {
+        this.socketReaderMainLoop();
+        Sys.sleep(0.01);
+      }
+    });
+    // dummy thread to block for exiting
+    MainLoop.addThread(() -> {
+      while (!this.closed) {
+        Sys.sleep(0.01);
+      }
     });
 
     // create new channel 0
@@ -593,8 +598,6 @@ class Connection extends Emitter {
     this.closed = true;
     // stop heartbeater
     this.stopHeartbeat();
-    // clear acceptor
-    this.mainEvent.stop();
     // finally close socket
     this.sock.close();
     // emit closed
