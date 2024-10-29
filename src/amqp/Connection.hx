@@ -51,7 +51,8 @@ class Connection extends Emitter {
   private var closed:Bool;
   private var output:BytesOutput;
   private var sock:sys.net.Socket;
-  private var sockMutex:Mutex;
+  private var readMutex:Mutex;
+  private var writeMutex:Mutex;
   private var rest:BytesOutput;
   private var frame:Frame;
   private var channelMap:Map<Int, Channel>;
@@ -73,7 +74,8 @@ class Connection extends Emitter {
     this.frame = new Frame();
     this.frameMax = Constant.FRAME_MIN_SIZE;
     this.rest = new BytesOutput();
-    this.sockMutex = new Mutex();
+    this.readMutex = new Mutex();
+    this.writeMutex = new Mutex();
     this.sentSinceLastCheck = false;
     this.receivedSinceLastCheck = false;
   }
@@ -130,18 +132,43 @@ class Connection extends Emitter {
   }
 
   /**
-   * Socket reader called from main loop
+   * Helper to send bytes
+   * @param bytes bytes to send
    */
-  private function socketReaderMainLoop():Void {
+  private function sendBytes(bytes:Bytes):Void {
     // aquire mutex
-    this.sockMutex.acquire();
+    this.writeMutex.acquire();
+    // wait for write
+    var result:{read:Array<sys.net.Socket>, write:Array<sys.net.Socket>, others:Array<sys.net.Socket>} = sys.net.Socket.select(null, [this.sock], null);
+    // write data
+    result.write[0].output.writeFullBytes(bytes, 0, bytes.length);
+    // flush it
+    result.write[0].output.flush();
+    // set sent flag
+    this.sentSinceLastCheck = true;
+    // release mutex
+    this.writeMutex.release();
+  }
+
+  /**
+   * Socket reader called from main loop
+   * @param withWait enable wait for read
+   */
+  private function socketReaderPoll(withWait:Bool):Void {
+    // aquire mutex
+    this.readMutex.acquire();
     // we've valid data for read
     try {
+      // wait for data
+      if (withWait) {
+        this.sock.waitForRead();
+      }
+      // allocate chunk of data
+      var data:Bytes = Bytes.alloc(1024);
+      // loop endless
       while (true) {
-        // allocate chunk of data
-        var data:Bytes = Bytes.alloc(1024);
-        // read data
-        var read:Int = this.sock.input.readBytes(data, 0, data.length);
+        var read:Int = 0;
+        read = this.sock.input.readBytes(data, 0, data.length);
         // handle no more data
         if (read <= 0) {
           break;
@@ -155,7 +182,7 @@ class Connection extends Emitter {
       }
     }
     // release mutex
-    this.sockMutex.release();
+    this.readMutex.release();
     // execute receive acceptor
     this.receiveAcceptor();
   }
@@ -184,18 +211,8 @@ class Connection extends Emitter {
    * Helper to send heartbeat
    */
   private function sendHeartbeat():Void {
-    // aquire mutex
-    this.sockMutex.acquire();
-    // get heartbeat buffer
-    var bytes:Bytes = Frame.HEARTBEAT_BUFFER;
     // just send it
-    this.sock.output.writeFullBytes(bytes, 0, bytes.length);
-    // flush socket output
-    this.sock.output.flush();
-    // release mutex
-    this.sockMutex.release();
-    // set sent flag
-    this.sentSinceLastCheck = true;
+    this.sendBytes(Frame.HEARTBEAT_BUFFER);
   }
 
   /**
@@ -332,20 +349,6 @@ class Connection extends Emitter {
     // get opening frame content
     var openFrameData:OpenFrame = openFrames();
 
-    // add socket reader to main loop
-    Thread.createWithEventLoop(() -> {
-      while (!this.closed) {
-        this.socketReaderMainLoop();
-        Sys.sleep(0.01);
-      }
-    });
-    // dummy thread to block for exiting
-    MainLoop.addThread(() -> {
-      while (!this.closed) {
-        Sys.sleep(0.01);
-      }
-    });
-
     // create new channel 0
     var channel:Channel0 = new Channel0(this, 0);
     // force channel state to be open for channel 0
@@ -362,6 +365,15 @@ class Connection extends Emitter {
       this.channelMax = openFrameData.tuneOk.channelMax;
       this.frameMax = openFrameData.tuneOk.frameMax;
       this.heartbeat = openFrameData.tuneOk.heartbeat;
+      // new thread with event loop for receiving
+      MainLoop.addThread(() -> {
+        while (!this.closed) {
+          // poll without wait
+          this.socketReaderPoll(false);
+          // sleep a tiny while
+          Sys.sleep(0.01);
+        }
+      });
       // start heartbeat
       this.startHeartbeat();
       // execute successCallback
@@ -379,6 +391,8 @@ class Connection extends Emitter {
       channel.setExpected(EncoderDecoderInfo.ConnectionOpenOk, onOpenOk);
       // send open message
       sendMethod(0, EncoderDecoderInfo.ConnectionOpen, openFrameData.open);
+      // poll data
+      this.socketReaderPoll(true);
     }
 
     function onProtocolReturn(frame:Dynamic):Void {
@@ -398,19 +412,16 @@ class Connection extends Emitter {
       // Send connection start ok
       channel.setExpected(EncoderDecoderInfo.ConnectionTune, onTuneResponse);
       this.sendMethod(0, EncoderDecoderInfo.ConnectionStartOk, openFrameData.startOk);
+      // poll data
+      this.socketReaderPoll(true);
     }
 
     // set expected frame for channel0
     channel.setExpected(EncoderDecoderInfo.ConnectionStart, onProtocolReturn);
-    // acquire mutex
-    this.sockMutex.acquire();
     // send protocol header
-    var b:Bytes = Bytes.ofString(Frame.PROTOCOL_HEADER);
-    this.sock.output.writeFullBytes(b, 0, b.length);
-    // release mutex
-    this.sockMutex.release();
-    // set sent flag
-    this.sentSinceLastCheck = true;
+    this.sendBytes(Bytes.ofString(Frame.PROTOCOL_HEADER));
+    // poll data
+    this.socketReaderPoll(true);
   }
 
   /**
@@ -473,18 +484,10 @@ class Connection extends Emitter {
    * @param fields fields with data for method
    */
   public function sendMethod(channel:Int, method:Int, fields:Dynamic):Void {
-    // acquire mutex
-    this.sockMutex.acquire();
     // encode method
     var frame:Bytes = EncoderDecoderInfo.encodeMethod(method, channel, fields);
-    // write to network
-    this.sock.output.writeFullBytes(frame, 0, frame.length);
-    // flush socket output
-    this.sock.output.flush();
-    // release mutex
-    this.sockMutex.release();
-    // set sent flag
-    this.sentSinceLastCheck = true;
+    // just send it
+    this.sendBytes(frame);
   }
 
   /**
@@ -506,8 +509,6 @@ class Connection extends Emitter {
     var bodyLength:Int = content.length > 0 ? content.length + Constant.FRAME_OVERHEAD : 0;
     var totalLength:Int = methodHeaderLength + bodyLength;
 
-    // acquire mutex
-    this.sockMutex.acquire();
     // handle sendable within a single chunk
     if (totalLength < SINGLE_CHUNK_THRESHOLD) {
       // build send package
@@ -518,13 +519,8 @@ class Connection extends Emitter {
       output.writeBytes(bodyFrame, 0, bodyFrame.length);
       // translate into bytes wrapper
       var frame:Bytes = Bytes.ofData(output.getBytes().getData());
-      // write to network
-      this.sock.output.writeFullBytes(frame, 0, frame.length);
-      this.sock.output.flush();
-      // release mutex
-      this.sockMutex.release();
-      // set sent flag
-      this.sentSinceLastCheck = true;
+      // just send it
+      this.sendBytes(frame);
       // return written length
       return bodyLength;
     }
@@ -536,19 +532,15 @@ class Connection extends Emitter {
       output.writeBytes(pframe, 0, pframe.length);
       // translate into bytes wrapper
       var frame:Bytes = Bytes.ofData(output.getBytes().getData());
-      // write to network
-      this.sock.output.writeFullBytes(frame, 0, frame.length);
-      this.sock.output.flush();
+      // just send it
+      this.sendBytes(frame);
     } else {
-      this.sock.output.writeFullBytes(mframe, 0, mframe.length);
-      this.sock.output.writeFullBytes(pframe, 0, pframe.length);
+      // just send it
+      this.sendBytes(mframe);
+      this.sendBytes(pframe);
     }
     // send content finally
     var written:Int = this.sendContent(channel, content);
-    // release mutex
-    this.sockMutex.release();
-    // set sent flag
-    this.sentSinceLastCheck = true;
     // return written bytes
     return written;
   }
@@ -572,9 +564,8 @@ class Connection extends Emitter {
       }
       var slice:Bytes = content.sub(offset, end - offset);
       var bodyFrame:Bytes = this.frame.makeBodyFrame(channel, slice);
-      // write to network
-      this.sock.output.writeFullBytes(bodyFrame, 0, bodyFrame.length);
-      this.sock.output.flush();
+      // just send it
+      this.sendBytes(bodyFrame);
       // increase written
       written += bodyFrame.length;
       // increase offset
