@@ -167,14 +167,16 @@ class Connection extends Emitter {
       var data:Bytes = Bytes.alloc(1024);
       // loop endless
       while (true) {
-        var read:Int = 0;
-        read = this.sock.input.readBytes(data, 0, data.length);
+        var read:Int = this.sock.input.readBytes(data, 0, data.length);
+        // handle data read
+        if (read > 0) {
+          // write to output buffer
+          this.output.writeBytes(data, 0, read);
+        }
         // handle no more data
-        if (read <= 0) {
+        if (read <= 0 || read < data.length) {
           break;
         }
-        // write to output buffer
-        this.output.writeBytes(data, 0, read);
       }
     } catch (e:Dynamic) {
       if (Std.isOfType(e, haxe.io.Eof) || e == haxe.io.Eof) {} else if (e == haxe.io.Error.Blocked) {} else {
