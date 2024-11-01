@@ -26,10 +26,9 @@ To setup for making changes you'll need to take a few steps, we've outlined belo
 4. Run `haxelib install format`
 5. Run `haxelib install formatter`
 6. Run `haxelib install hxcpp`
-7. Run `haxelib install utest`
-8. Run `haxelib install Emitter`
-9. Run `haxelib install dox`
-10. Run `haxelib install uuid`
+7. Run `haxelib install Emitter`
+8. Run `haxelib install dox`
+9. Run `haxelib install uuid`
 
 ### Making a change
 

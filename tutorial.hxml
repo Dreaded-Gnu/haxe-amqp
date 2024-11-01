@@ -2,7 +2,6 @@
 -lib format
 -lib Emitter
 # following is only necessary for vscode
--lib utest
 -lib uuid
 --define HXCPP_CHECK_POINTER
 --define HXCPP_STACK_VARS

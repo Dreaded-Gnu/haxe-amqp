@@ -1,7 +1,0 @@
--cp src
--cp test
--main Test
--lib utest
--lib format
--lib Emitter
--lib uuid
