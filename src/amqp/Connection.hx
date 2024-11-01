@@ -254,55 +254,49 @@ class Connection extends Emitter {
    * Receive acceptor polling every second for new data
    */
   public function receiveAcceptor():Void {
-    // try again flag set when there is further data
-    var tryAgain:Bool = false;
-    // fetch data from output buffer
-    var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
-    // flush out
-    this.output.flush();
-    // handle no data
-    if (bytes.length > 0) {
-      // write to rest
-      this.rest.writeBytes(bytes, 0, bytes.length);
-    }
-    // get everything from rest
-    bytes = Bytes.ofData(this.rest.getBytes().getData());
-    // flush rest
-    this.rest.flush();
-    // handle no data
-    if (bytes.length == 0) {
-      return;
-    }
-    // create bytes input accessor with big endian
-    var input:BytesInput = new BytesInput(bytes);
-    input.bigEndian = true;
-    // parse frame
-    var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
-    // handle no complete frame
-    if (parsedFrame == null) {
-      this.rest.writeBytes(bytes, 0, bytes.length);
-      return;
-      // handle possible further stuff
-    } else if (parsedFrame.rest.length > 0) {
-      // write back rest
-      this.rest.writeBytes(parsedFrame.rest, 0, parsedFrame.rest.length);
-      // set try again flag
-      tryAgain = true;
-    }
-    // set received since last check to true
-    this.receivedSinceLastCheck = true;
-    // return decoded frame
-    var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
-    // get channel
-    var channel:Channel = this.channelMap.get(parsedFrame.channel);
-    if (null == channel) {
-      closeWithError("Invalid channel received!", Constant.CHANNEL_ERROR);
-    } else {
-      channel.accept(decodedFrame);
-    }
-    // handle try again
-    if (tryAgain) {
-      this.receiveAcceptor();
+    while (true) {
+      // fetch data from output buffer
+      var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
+      // flush out
+      this.output.flush();
+      // handle no data
+      if (bytes.length > 0) {
+        // write to rest
+        this.rest.writeBytes(bytes, 0, bytes.length);
+      }
+      // get everything from rest
+      bytes = Bytes.ofData(this.rest.getBytes().getData());
+      // flush rest
+      this.rest.flush();
+      // handle no data
+      if (bytes.length == 0) {
+        return;
+      }
+      // create bytes input accessor with big endian
+      var input:BytesInput = new BytesInput(bytes);
+      input.bigEndian = true;
+      // parse frame
+      var parsedFrame:DecodedFrame = this.frame.parseFrame(input, this.frameMax);
+      // handle no complete frame
+      if (parsedFrame == null) {
+        this.rest.writeBytes(bytes, 0, bytes.length);
+        return;
+        // handle possible further stuff
+      } else if (parsedFrame.rest.length > 0) {
+        // write back rest
+        this.rest.writeBytes(parsedFrame.rest, 0, parsedFrame.rest.length);
+      }
+      // set received since last check to true
+      this.receivedSinceLastCheck = true;
+      // return decoded frame
+      var decodedFrame:Dynamic = this.frame.decodeFrame(parsedFrame);
+      // get channel
+      var channel:Channel = this.channelMap.get(parsedFrame.channel);
+      if (null == channel) {
+        closeWithError("Invalid channel received!", Constant.CHANNEL_ERROR);
+      } else {
+        channel.accept(decodedFrame);
+      }
     }
   }
 
