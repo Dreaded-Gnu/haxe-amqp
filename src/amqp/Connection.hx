@@ -152,17 +152,14 @@ class Connection extends Emitter {
 
   /**
    * Socket reader called from main loop
-   * @param withWait enable wait for read
    */
-  private function socketReaderPoll(withWait:Bool):Void {
+  private function socketReaderPoll():Void {
     // aquire mutex
     this.readMutex.acquire();
     // we've valid data for read
     try {
       // wait for data
-      if (withWait) {
-        this.sock.waitForRead();
-      }
+      this.sock.waitForRead();
       // allocate chunk of data
       var data:Bytes = Bytes.alloc(1024);
       // loop endless
@@ -257,6 +254,8 @@ class Connection extends Emitter {
    * Receive acceptor polling every second for new data
    */
   public function receiveAcceptor():Void {
+    // try again flag set when there is further data
+    var tryAgain:Bool = false;
     // fetch data from output buffer
     var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
     // flush out
@@ -285,7 +284,10 @@ class Connection extends Emitter {
       return;
       // handle possible further stuff
     } else if (parsedFrame.rest.length > 0) {
+      // write back rest
       this.rest.writeBytes(parsedFrame.rest, 0, parsedFrame.rest.length);
+      // set try again flag
+      tryAgain = true;
     }
     // set received since last check to true
     this.receivedSinceLastCheck = true;
@@ -297,6 +299,10 @@ class Connection extends Emitter {
       closeWithError("Invalid channel received!", Constant.CHANNEL_ERROR);
     } else {
       channel.accept(decodedFrame);
+    }
+    // handle try again
+    if (tryAgain) {
+      this.receiveAcceptor();
     }
   }
 
@@ -371,7 +377,7 @@ class Connection extends Emitter {
       MainLoop.addThread(() -> {
         while (!this.closed) {
           // poll without wait
-          this.socketReaderPoll(false);
+          this.socketReaderPoll();
           // sleep a tiny while
           Sys.sleep(0.01);
         }
@@ -394,7 +400,7 @@ class Connection extends Emitter {
       // send open message
       sendMethod(0, EncoderDecoderInfo.ConnectionOpen, openFrameData.open);
       // poll data
-      this.socketReaderPoll(true);
+      this.socketReaderPoll();
     }
 
     function onProtocolReturn(frame:Dynamic):Void {
@@ -415,7 +421,7 @@ class Connection extends Emitter {
       channel.setExpected(EncoderDecoderInfo.ConnectionTune, onTuneResponse);
       this.sendMethod(0, EncoderDecoderInfo.ConnectionStartOk, openFrameData.startOk);
       // poll data
-      this.socketReaderPoll(true);
+      this.socketReaderPoll();
     }
 
     // set expected frame for channel0
@@ -423,7 +429,7 @@ class Connection extends Emitter {
     // send protocol header
     this.sendBytes(Bytes.ofString(Frame.PROTOCOL_HEADER));
     // poll data
-    this.socketReaderPoll(true);
+    this.socketReaderPoll();
   }
 
   /**
