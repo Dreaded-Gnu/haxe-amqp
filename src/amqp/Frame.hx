@@ -15,7 +15,7 @@ import amqp.helper.protocol.EncoderDecoderInfo;
 /**
  * Frame helper
  */
-class Frame {
+@:dox(hide) class Frame {
   /**
    * Protocol header
    */
@@ -93,7 +93,7 @@ class Frame {
    * @param bin Input object to parse
    * @param max max allowed frame size
    * @return decoded frame object
-   * @throws Exception when max size is exceeded 
+   * @throws Exception when max size is exceeded
    * @throws Exception when no frame end field was found
    */
   public function parseFrame(bin:Input, max:Int):DecodedFrame {

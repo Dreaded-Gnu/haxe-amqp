@@ -6,7 +6,7 @@ import haxe.Int64;
 /**
  * Frame header type
  */
-typedef FrameHeaderType = {
+@:dox(hide) typedef FrameHeaderType = {
   /**
    * amqp class
    */

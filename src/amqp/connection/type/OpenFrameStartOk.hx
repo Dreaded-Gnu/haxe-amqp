@@ -5,7 +5,7 @@ import amqp.connection.type.OpenFrameStartOkClientProperties;
 /**
  * Open frame start ok
  */
-typedef OpenFrameStartOk = {
+@:dox(hide) typedef OpenFrameStartOk = {
   /**
    * client properties
    */

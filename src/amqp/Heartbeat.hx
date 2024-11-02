@@ -6,7 +6,7 @@ import emitter.signals.Emitter;
 /**
  * Heartbeat implementation
  */
-class Heartbeat extends Emitter {
+@:dox(hide) class Heartbeat extends Emitter {
   /**
    * Event dispatched on heartbeat beat
    */

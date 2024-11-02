@@ -7,7 +7,7 @@ import amqp.connection.type.OpenFrameTuneOk;
 /**
  * Open frame typedef used for connection
  */
-typedef OpenFrame = {
+@:dox(hide) typedef OpenFrame = {
   /**
    * Start ok
    */

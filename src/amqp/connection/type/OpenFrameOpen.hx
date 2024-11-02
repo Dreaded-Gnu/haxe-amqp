@@ -3,7 +3,7 @@ package amqp.connection.type;
 /**
  * Open frame open
  */
-typedef OpenFrameOpen = {
+@:dox(hide) typedef OpenFrameOpen = {
   /**
    * vhost to be used
    */

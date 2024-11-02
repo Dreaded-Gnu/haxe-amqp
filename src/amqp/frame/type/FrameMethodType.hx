@@ -6,7 +6,7 @@ import haxe.Int32;
 /**
  * Frame method type
  */
-typedef FrameMethodType = {
+@:dox(hide) typedef FrameMethodType = {
   /**
    * id
    */

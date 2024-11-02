@@ -3,7 +3,7 @@ package amqp.connection.type;
 /**
  * Open frame tune ok
  */
-typedef OpenFrameTuneOk = {
+@:dox(hide) typedef OpenFrameTuneOk = {
   /**
    * max channels
    */

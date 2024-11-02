@@ -6,7 +6,7 @@ import amqp.helper.Bytes;
 /**
  * Bytes input extension
  */
-class BytesInput extends haxe.io.BytesInput {
+@:dox(hide) class BytesInput extends haxe.io.BytesInput {
   /**
    * Constructor
    * @param b bytes object

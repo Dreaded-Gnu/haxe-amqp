@@ -3,7 +3,7 @@ package amqp.connection.type;
 /**
  * Open frame start ok client properties
  */
-typedef OpenFrameStartOkClientProperties = {
+@:dox(hide) typedef OpenFrameStartOkClientProperties = {
   /**
    * product
    */

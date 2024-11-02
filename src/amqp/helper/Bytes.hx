@@ -6,7 +6,7 @@ import haxe.io.Encoding;
 /**
  * Bytes extension class
  */
-class Bytes extends haxe.io.Bytes {
+@:dox(hide) class Bytes extends haxe.io.Bytes {
   /**
    * Constructor
    * @param length length of bytes

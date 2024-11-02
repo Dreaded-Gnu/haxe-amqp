@@ -6,7 +6,7 @@ import amqp.helper.Bytes;
 /**
  * Decoded frame information
  */
-typedef DecodedFrame = {
+@:dox(hide) typedef DecodedFrame = {
   /**
    * frame type
    */

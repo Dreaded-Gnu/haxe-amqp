@@ -6,7 +6,7 @@ import haxe.Int64;
 /**
  * BytesOutput extension
  */
-class BytesOutput extends haxe.io.BytesOutput {
+@:dox(hide) class BytesOutput extends haxe.io.BytesOutput {
   /**
    * Constructor
    */

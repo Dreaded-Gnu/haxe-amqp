@@ -10,7 +10,7 @@ import amqp.helper.Bytes;
 /**
  * Some static helper for encoding and decoding
  */
-class Codec {
+@:dox(hide) class Codec {
   /**
    * Helper to encode field value
    * @param buffer buffer to write encoded field value to
