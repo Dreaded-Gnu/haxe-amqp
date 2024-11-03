@@ -37,13 +37,16 @@ class Server {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
-      // create channel
-      var channel:Channel = conn.channel((channel:Channel) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        // create channel
+        return connection.channel();
+      })
+      .then((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: 'rpc_queue',}, (data:Dynamic) -> {
-          channel.basicQos({prefetchCount: 1,}, () -> {
-            channel.consumeQueue({queue: 'rpc_queue',}, (msg:Message) -> {
+        return channel.declareQueue({queue: 'rpc_queue',}).then((frame:Dynamic) -> {
+          return channel.basicQos({prefetchCount: 1,}).then((qosStatus:Bool) -> {
+            return channel.consumeQueue({queue: 'rpc_queue',}, (msg:Message) -> {
               // get integer
               var num:Int = Std.parseInt(msg.content.toString());
               // some debug output
@@ -54,12 +57,12 @@ class Server {
               channel.basicPublish('', msg.properties.replyTo, Bytes.ofString(Std.string(response), Encoding.UTF8),
                 {correlationId: msg.properties.correlationId});
               channel.ack(msg);
-            }, (consumerTag:String) -> {});
+            });
           });
         });
+      })
+      .then((consumerTag:String) -> {
+        trace(' [*] Waiting for messages on ${consumerTag}. To exit press CTRL+C');
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

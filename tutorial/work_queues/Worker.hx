@@ -25,26 +25,29 @@ class Worker {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
-      // create channel
-      var channel:Channel = conn.channel((channel:Channel) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        // create channel
+        return conn.channel();
+      })
+      .then((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE, durable: true,}, (frame:Dynamic) -> {
+        return channel.declareQueue({queue: QUEUE, durable: true,}).then((frame:Dynamic) -> {
           // only one message at the time
-          channel.basicQos({prefetchCount: 1,}, () -> {
+          return channel.basicQos({prefetchCount: 1,}).then((qosResult:Bool) -> {
             // consume queue
-            channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
+            return channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
               if (message != null) {
                 trace('Received "${message.content.toString()}"');
                 Sys.sleep(message.content.length);
                 channel.ack(message);
               }
-            }, (consumerTag:String) -> {});
+            });
           });
         });
+      })
+      .then((consumerTag:String) -> {
+        trace(' [*] Waiting for messages on ${consumerTag}. To exit press CTRL+C');
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

@@ -1,5 +1,7 @@
 package tutorial.close_queue;
 
+using thenshim.PromiseTools;
+
 import haxe.Timer;
 import amqp.message.Message;
 import amqp.Channel;
@@ -32,28 +34,34 @@ class Close {
     });
     trace("connect!");
     // connect to amqp
-    conn.connect(() -> {
-      trace("create channel!");
-      // create channel
-      channel = conn.channel((channel:Channel) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        trace("create channel!");
+        // create channel
+        return connection.channel();
+      })
+      .then((ch:Channel) -> {
+        channel = ch;
         trace("declare queue!");
         // declare queue
-        channel.declareQueue({queue: QUEUE,}, (frame:Dynamic) -> {
+        return channel.declareQueue({queue: QUEUE,}).then((frame:Dynamic) -> {
           trace("consume queue!");
           trace(frame);
           // consume queue
-          channel.consumeQueue({queue: QUEUE}, (message:Message) -> {}, (id:String) -> {
-            consumerId = id;
-            trace(consumerId);
-            // var timer
-            timer = new Timer(5000);
-            timer.run = close;
-          });
+          return channel.consumeQueue({queue: QUEUE}, (message:Message) -> {});
         });
+      })
+      .then((id:String) -> {
+        consumerId = id;
+        trace(consumerId);
+        // var timer
+        timer = new Timer(5000);
+        trace(timer);
+        timer.run = close;
+      })
+      .catchError((e:Dynamic) -> {
+        trace(e);
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 
   private static function close():Void {
@@ -62,18 +70,21 @@ class Close {
     timer.stop();
     trace("cancel consume!");
     // cancel consume
-    channel.cancel({consumerTag: consumerId}, () -> {
-      trace("delete queue!");
-      // delete queue again
-      channel.deleteQueue({queue: QUEUE}, (messageCount:Int) -> {
+    channel.cancel({consumerTag: consumerId,})
+      .then((cancelStatus:Bool) -> {
+        trace("delete queue!");
+        // delete queue again
+        return channel.deleteQueue({queue: QUEUE});
+      })
+      .then((messageCount:Int) -> {
         trace("close channel!");
         // close channel
-        channel.close(() -> {
-          trace("close connection!");
-          // close connection
-          conn.close();
-        });
+        return channel.close();
+      })
+      .then((channelCloseState:Bool) -> {
+        trace("close connection!");
+        // close connection
+        conn.close();
       });
-    });
   }
 }

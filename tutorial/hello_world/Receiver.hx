@@ -26,24 +26,25 @@ class Receiver {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
-      // create channel
-      var channel:Channel = conn.channel((channel:Channel) -> {
-        // declare queue
-        channel.declareQueue({queue: QUEUE,}, (frame:Dynamic) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        return connection.channel();
+      })
+      .then((channel:Channel) -> {
+        return channel.declareQueue({queue: QUEUE,}).then((frame:Dynamic) -> {
           // consume queue
-          channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
+          return channel.consumeQueue({queue: QUEUE}, (message:Message) -> {
             if (message != null) {
               if (message.content != null) {
                 trace('Received "${message.content.toString()}"');
               }
               channel.ack(message);
             }
-          }, (consumerTag:String) -> {});
+          });
         });
+      })
+      .then((consumerTag:String) -> {
+        trace(' [*] Waiting for messages on ${consumerTag}. To exit press CTRL+C');
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

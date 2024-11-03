@@ -14,7 +14,7 @@
   ],
   "classPath": "src",
   "dependencies": {
-    "format": "3.7.0",
-    "Emitter": "0.9.1"
+    "format": "",
+    "Emitter": ""
   }
 }

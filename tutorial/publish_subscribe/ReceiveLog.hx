@@ -29,23 +29,23 @@ class ReceiveLog {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
+    conn.connect().then((connection:Connection) -> {
       // create channel
-      var channel:Channel = conn.channel((channel:Channel) -> {
-        // declare queue
-        channel.declareExchange({exchange: 'logs', type: 'fanout'}, () -> {
-          channel.declareQueue({queue: '',}, (data:Dynamic) -> {
-            channel.bindQueue({exchange: 'logs', queue: data.fields.queue}, () -> {
-              trace('[*] Waiting for logs. To exit press CTRL+C');
-              channel.consumeQueue({queue: data.fields.queue, noAck: true}, (msg:Message) -> {
-                trace('[x] ${msg.content.toString()}');
-              }, (consumerTag:String) -> {});
+      return connection.channel();
+    }).then((channel:Channel) -> {
+      // declare queue
+      return channel.declareExchange({exchange: 'logs', type: 'fanout',}).then((exchangeState:Bool) -> {
+        return channel.declareQueue({queue: '',}).then((data:Dynamic) -> {
+          return channel.bindQueue({exchange: 'logs', queue: data.fields.queue}).then((bindStatus:Bool) -> {
+            trace('[*] Waiting for logs. To exit press CTRL+C');
+            return channel.consumeQueue({queue: data.fields.queue, noAck: true}, (msg:Message) -> {
+              trace('[x] ${msg.content.toString()}');
             });
           });
         });
+      }).then((consumerTag:String) -> {
+        trace(' [*] Waiting for messages on ${consumerTag}. To exit press CTRL+C');
       });
-    }, () -> {
-      trace('failed to connect');
     });
   }
 }

@@ -1,5 +1,6 @@
 package tutorial.rpc;
 
+import promises.Promise;
 import haxe.io.Encoding;
 import uuid.Uuid;
 import amqp.helper.Bytes;
@@ -9,38 +10,22 @@ import amqp.Connection;
 import amqp.connection.Config;
 
 class Client {
-  private static var correlationId:String;
-  private static var channel:Channel;
-  private static var conn:Connection;
-  private static var callbackQueue:String;
-  private static var response:Bytes;
-
-  /**
-   * Call rpc function and sleep until return
-   * @param num
-   * @return Int
-   */
-  private static function call(num:Int):Int {
-    response = null;
-    correlationId = Uuid.v4();
-    channel.basicPublish('', 'rpc_queue', Bytes.ofString(Std.string(num), Encoding.UTF8), {replyTo: callbackQueue, correlationId: correlationId,});
-    while (response == null) {
-      // sleep a second to wait until possible answer
-      Sys.sleep(1);
-      // call receiveAcceptor manually since timers are blocked during sleep
-      conn.receiveAcceptor();
-    }
-    return Std.parseInt(response.toString());
-  }
-
   /**
    * Main entry point
    */
   public static function main():Void {
+    var inputData:Array<String> = Sys.args();
+    // check for argument length
+    if (0 >= inputData.length) {
+      trace("Usage: Client [number]...");
+      return;
+    }
+    var num:Int = Std.parseInt(inputData[0]);
     // create connection instance
     var cfg:Config = new Config();
     // create connection instance
-    conn = new Connection(cfg);
+    var conn:Connection = new Connection(cfg);
+    var channel:Channel = null;
     // add closed listener
     conn.on(Connection.EVENT_CLOSED, function(event:String) {
       trace(event);
@@ -50,25 +35,48 @@ class Client {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
-      channel = conn.channel((channel:Channel) -> {
-        channel.declareQueue({queue: '', exclusive: true,}, (data:Dynamic) -> {
-          // set callback queue
-          callbackQueue = data.fields.queue;
-          // consume channel
-          channel.consumeQueue({queue: callbackQueue, noAck: true,}, (msg:Message) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        return connection.channel();
+      })
+      .then((ch:Channel) -> {
+        channel = ch;
+        return new Promise((resolve, reject) -> {
+          // build correlation id
+          var correlationId:String = Uuid.v4();
+          // maybe answer handling
+          function maybeAnswer(msg:Message):Void {
             if (msg.properties.correlationId == correlationId) {
-              response = Bytes.ofData(msg.content.getData());
+              resolve(msg.content.toString());
             }
-          }, (consumerTag:String) -> {});
-          // call fibonacci rpc
-          trace(' [x] Requesting fib(30)');
-          var response:Int = call(30);
-          trace(' [.] Got ${response}');
+          }
+          // declare queue
+          channel.declareQueue({queue: '', exclusive: true,})
+            .then((frame:Dynamic) -> {
+              // set callback queue
+              return frame.fields.queue;
+            })
+            .then((callbackQueue:String) -> {
+              // consume channel
+              return channel.consumeQueue({queue: callbackQueue, noAck: true,}, maybeAnswer).then((consumerTag:String) -> {
+                return callbackQueue;
+              });
+            })
+            .then((callbackQueue:String) -> {
+              trace(' [x] Requesting fib(${num})');
+              channel.basicPublish('', 'rpc_queue', Bytes.ofString(Std.string(num), Encoding.UTF8), {replyTo: callbackQueue, correlationId: correlationId,});
+            });
         });
+      })
+      .then((result:String) -> {
+        trace(' [.] Got ${result}');
+        return true;
+      })
+      .then((status:Bool) -> {
+        return channel.close();
+      })
+      .then((closeChannelStatus:Bool) -> {
+        conn.close();
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

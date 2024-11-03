@@ -5,6 +5,7 @@
 --xml bin/types.xml
 -lib format
 -lib Emitter
+-lib promises
 --cpp bin/cpp
 --next
 

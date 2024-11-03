@@ -32,24 +32,24 @@ class Sender {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
-      // create channel
-      var channel:Channel = conn.channel((channel:Channel) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        // create channel
+        return connection.channel();
+      })
+      .then((channel:Channel) -> {
         // declare queue
-        channel.declareQueue({queue: QUEUE}, (frame:Dynamic) -> {
+        return channel.declareQueue({queue: QUEUE,}).then((frane:Dynamic) -> {
           // publish a message
           channel.basicPublish('', QUEUE, Bytes.ofString(MESSAGE, Encoding.UTF8));
           trace(' [x] Sent ${MESSAGE}');
           // close channel
-          channel.close(() -> {
-            trace("closing connection after channel was closed!");
-            // close connection finally
-            conn.close();
-          });
+          return channel.close();
         });
+      })
+      .then((channelCloseStatus:Bool) -> {
+        trace("closing connection after channel was closed!");
+        conn.close();
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

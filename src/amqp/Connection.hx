@@ -4,8 +4,8 @@ import haxe.MainLoop;
 import haxe.Exception;
 import sys.net.Host;
 import sys.thread.Mutex;
-import sys.thread.Thread;
 import emitter.signals.Emitter;
+import promises.Promise;
 import amqp.connection.Config;
 import amqp.connection.type.OpenFrame;
 import amqp.frame.type.DecodedFrame;
@@ -62,6 +62,9 @@ class Connection extends Emitter {
   private var heartbeat:Int;
   private var heartbeater:Heartbeat;
   private var nextChannelId:Int;
+  private var queuedCallback:Array<(Dynamic)->Void>;
+  private var queuedCallbackData:Array<Dynamic>;
+  private var mainEvent:MainEvent;
 
   /**
    * Constructor
@@ -78,6 +81,9 @@ class Connection extends Emitter {
     this.writeMutex = new Mutex();
     this.sentSinceLastCheck = false;
     this.receivedSinceLastCheck = false;
+    this.queuedCallback = new Array<(Dynamic)->Void>();
+    this.queuedCallbackData = new Array<Dynamic>();
+    this.mainEvent = null;
   }
 
   /**
@@ -253,7 +259,7 @@ class Connection extends Emitter {
   /**
    * Receive acceptor polling every second for new data
    */
-  public function receiveAcceptor():Void {
+  private function receiveAcceptor():Void {
     while (true) {
       // fetch data from output buffer
       var bytes:Bytes = Bytes.ofData(this.output.getBytes().getData());
@@ -316,114 +322,132 @@ class Connection extends Emitter {
   }
 
   /**
-   * Connect to amqp with performing handshake
-   * @param successCallback callback executed once connection handshake is
-   * @param failureCallback callback executed when connection failed
+   * Helper to queue a callback in main thread
+   * @param callback
+   * @param data
    */
-  public function connect(successCallback:() -> Void, failureCallback:() -> Void):Void {
-    // generate socket
-    if (this.config.isSecure) {
-      // create ssl socket
-      var sslSocket:sys.ssl.Socket = new sys.ssl.Socket();
-      // set ca and certificate
-      sslSocket.setCA(sys.ssl.Certificate.loadFile(this.config.sslCaCert));
-      sslSocket.setCertificate(sys.ssl.Certificate.loadFile(this.config.sslCert), sys.ssl.Key.loadFile(this.config.sslKey));
-      sslSocket.verifyCert = this.config.sslVerify;
-      // set sock
-      this.sock = sslSocket;
-    } else {
-      this.sock = new sys.net.Socket();
-    }
-    // set socket timeout
-    this.sock.setTimeout(Math.max(this.config.writeTimeout, this.config.readTimeout));
-    // connect to host
-    try {
-      this.sock.connect(new Host(this.config.host), this.config.port);
-    } catch (e:Any) {
-      failureCallback();
-      return;
-    }
-    // disable blocking and set fast send
-    this.sock.setBlocking(false);
-    this.sock.setFastSend(true);
-    this.closed = false;
+  @:dox(hide) @:noCompletion public function queueCallback(callback:(Dynamic)->Void, data:Dynamic):Void {
+    this.queuedCallbackData.push(data);
+    this.queuedCallback.push(callback);
+  }
 
-    // get opening frame content
-    var openFrameData:OpenFrame = openFrames();
+  /**
+   * Connect to amqp with performing handshake
+   * @returns promise resolved once connection has been resolved
+   */
+  public function connect():Promise<Connection> {
+    return new Promise<Connection>((resolve:Connection->Void, reject:Any->Void) -> {
+      // generate socket
+      if (this.config.isSecure) {
+        // create ssl socket
+        var sslSocket:sys.ssl.Socket = new sys.ssl.Socket();
+        // set ca and certificate
+        sslSocket.setCA(sys.ssl.Certificate.loadFile(this.config.sslCaCert));
+        sslSocket.setCertificate(sys.ssl.Certificate.loadFile(this.config.sslCert), sys.ssl.Key.loadFile(this.config.sslKey));
+        sslSocket.verifyCert = this.config.sslVerify;
+        // set sock
+        this.sock = sslSocket;
+      } else {
+        this.sock = new sys.net.Socket();
+      }
+      // set socket timeout
+      this.sock.setTimeout(Math.max(this.config.writeTimeout, this.config.readTimeout));
+      // connect to host
+      try {
+        this.sock.connect(new Host(this.config.host), this.config.port);
+      } catch (e:Any) {
+        reject(e);
+        return;
+      }
+      // disable blocking and set fast send
+      this.sock.setBlocking(false);
+      this.sock.setFastSend(true);
+      this.closed = false;
 
-    // create new channel 0
-    var channel:Channel0 = new Channel0(this, 0);
-    // force channel state to be open for channel 0
-    channel.forceConnectionState(ChannelStateOpen);
-    // setup map
-    this.channelMap = new Map<Int, Channel>();
-    // insert instance for control channel 0
-    this.channelMap.set(0, channel);
-    // set next channel id
-    this.nextChannelId = 1;
+      // get opening frame content
+      var openFrameData:OpenFrame = openFrames();
 
-    function onOpenOk(frame:Dynamic):Void {
-      // store channel max, frame max and heartbeat
-      this.channelMax = openFrameData.tuneOk.channelMax;
-      this.frameMax = openFrameData.tuneOk.frameMax;
-      this.heartbeat = openFrameData.tuneOk.heartbeat;
-      // new thread with event loop for receiving
-      MainLoop.addThread(() -> {
-        while (!this.closed) {
-          // poll without wait
-          this.socketReaderPoll();
-          // sleep a tiny while
-          Sys.sleep(0.01);
+      // create new channel 0
+      var channel:Channel0 = new Channel0(this, 0);
+      // force channel state to be open for channel 0
+      channel.forceConnectionState(ChannelStateOpen);
+      // setup map
+      this.channelMap = new Map<Int, Channel>();
+      // insert instance for control channel 0
+      this.channelMap.set(0, channel);
+      // set next channel id
+      this.nextChannelId = 1;
+
+      function onOpenOk(frame:Dynamic):Void {
+        // store channel max, frame max and heartbeat
+        this.channelMax = openFrameData.tuneOk.channelMax;
+        this.frameMax = openFrameData.tuneOk.frameMax;
+        this.heartbeat = openFrameData.tuneOk.heartbeat;
+        // new thread with event loop for receiving
+        MainLoop.addThread(() -> {
+          while (!this.closed) {
+            this.socketReaderPoll();
+            Sys.sleep(0.01);
+          }
+        });
+        this.mainEvent = MainLoop.add(() -> {
+          while (this.queuedCallback.length > 0) {
+            // get callback and frame
+            var callback:(Dynamic)->Void = this.queuedCallback.shift();
+            var frame:Dynamic = this.queuedCallbackData.shift();
+            // execute it
+            callback(frame);
+          }
+        });
+        // start heartbeat
+        this.startHeartbeat();
+        // execute successCallback
+        resolve(this);
+      }
+
+      function onTuneResponse(frame:Dynamic):Void {
+        // adjust openFrameData tune ok according to return from server
+        openFrameData.tuneOk.frameMax = negotiate(frame.fields.frameMax, openFrameData.tuneOk.frameMax);
+        openFrameData.tuneOk.channelMax = negotiate(frame.fields.channelMax, openFrameData.tuneOk.channelMax);
+        openFrameData.tuneOk.heartbeat = negotiate(frame.fields.heartbeat, openFrameData.tuneOk.heartbeat);
+        // send tune ok
+        sendMethod(0, EncoderDecoderInfo.ConnectionTuneOk, openFrameData.tuneOk);
+        // set expected frame callback and id
+        channel.setExpected(EncoderDecoderInfo.ConnectionOpenOk, onOpenOk);
+        // send open message
+        sendMethod(0, EncoderDecoderInfo.ConnectionOpen, openFrameData.open);
+        // poll data
+        this.socketReaderPoll();
+      }
+
+      function onProtocolReturn(frame:Dynamic):Void {
+        // check whether mechanism is supported
+        var mechanisms:Array<String> = cast(frame.fields.mechanisms, String).split(' ');
+        if (mechanisms.indexOf(openFrameData.startOk.mechanism) == -1) {
+          throw new Exception('SASL mechanism ${openFrameData.startOk.mechanism} is not provided by the server');
         }
-      });
-      // start heartbeat
-      this.startHeartbeat();
-      // execute successCallback
-      successCallback();
-    }
+        // validate version
+        if (!(frame.fields.versionMajor == 0 && frame.fields.versionMinor == 9)) {
+          this.sock.close();
+          throw new Exception('Unsupported protocol version detected: ${frame.fields.versionMajor}.${frame.fields.versionMinor}');
+        }
+        // save server properties
+        this.serverProperties = frame.fields.serverProperties;
 
-    function onTuneResponse(frame:Dynamic):Void {
-      // adjust openFrameData tune ok according to return from server
-      openFrameData.tuneOk.frameMax = negotiate(frame.fields.frameMax, openFrameData.tuneOk.frameMax);
-      openFrameData.tuneOk.channelMax = negotiate(frame.fields.channelMax, openFrameData.tuneOk.channelMax);
-      openFrameData.tuneOk.heartbeat = negotiate(frame.fields.heartbeat, openFrameData.tuneOk.heartbeat);
-      // send tune ok
-      sendMethod(0, EncoderDecoderInfo.ConnectionTuneOk, openFrameData.tuneOk);
-      // set expected frame callback and id
-      channel.setExpected(EncoderDecoderInfo.ConnectionOpenOk, onOpenOk);
-      // send open message
-      sendMethod(0, EncoderDecoderInfo.ConnectionOpen, openFrameData.open);
+        // Send connection start ok
+        channel.setExpected(EncoderDecoderInfo.ConnectionTune, onTuneResponse);
+        this.sendMethod(0, EncoderDecoderInfo.ConnectionStartOk, openFrameData.startOk);
+        // poll data
+        this.socketReaderPoll();
+      }
+
+      // set expected frame for channel0
+      channel.setExpected(EncoderDecoderInfo.ConnectionStart, onProtocolReturn);
+      // send protocol header
+      this.sendBytes(Bytes.ofString(Frame.PROTOCOL_HEADER));
       // poll data
       this.socketReaderPoll();
-    }
-
-    function onProtocolReturn(frame:Dynamic):Void {
-      // check whether mechanism is supported
-      var mechanisms:Array<String> = cast(frame.fields.mechanisms, String).split(' ');
-      if (mechanisms.indexOf(openFrameData.startOk.mechanism) == -1) {
-        throw new Exception('SASL mechanism ${openFrameData.startOk.mechanism} is not provided by the server');
-      }
-      // validate version
-      if (!(frame.fields.versionMajor == 0 && frame.fields.versionMinor == 9)) {
-        this.sock.close();
-        throw new Exception('Unsupported protocol version detected: ${frame.fields.versionMajor}.${frame.fields.versionMinor}');
-      }
-      // save server properties
-      this.serverProperties = frame.fields.serverProperties;
-
-      // Send connection start ok
-      channel.setExpected(EncoderDecoderInfo.ConnectionTune, onTuneResponse);
-      this.sendMethod(0, EncoderDecoderInfo.ConnectionStartOk, openFrameData.startOk);
-      // poll data
-      this.socketReaderPoll();
-    }
-
-    // set expected frame for channel0
-    channel.setExpected(EncoderDecoderInfo.ConnectionStart, onProtocolReturn);
-    // send protocol header
-    this.sendBytes(Bytes.ofString(Frame.PROTOCOL_HEADER));
-    // poll data
-    this.socketReaderPoll();
+    });
   }
 
   /**
@@ -443,27 +467,28 @@ class Connection extends Emitter {
 
   /**
    * Function generates a new channel
-   * @param callback callback executed once channel is opened
-   * @return Newly generated channel
+   * @return Promise which will result in channel
    */
-  public function channel(callback:(Channel) -> Void):Channel {
-    // get next id
-    var chlId:Int = this.nextChannelId++;
-    // instanciate new channel
-    var ch:Channel = new Channel(this, chlId);
-    // push back to channel map
-    this.channelMap.set(chlId, ch);
-    // open channel
-    ch.open(callback);
-    // return created channel
-    return ch;
+  public function channel():Promise<Channel> {
+    return new Promise<Channel>((resolve:Channel->Void, reject:Any->Void) -> {
+      // get next id
+      var chlId:Int = this.nextChannelId++;
+      // instanciate new channel
+      var channel:Channel = new Channel(this, chlId);
+      // push back to channel map
+      this.channelMap.set(chlId, channel);
+      // return open channel
+      channel.open().then((ch:Channel) -> {
+        resolve(ch);
+      });
+    });
   }
 
   /**
    * Remove passed channel from map
    * @param channel Channel to cleanup from channel map
    */
-  public function channelCleanup(channel:Channel):Void {
+  @:dox(hide) @:noCompletion public function channelCleanup(channel:Channel):Void {
     if (this.channelMap.exists(channel.id)) {
       this.channelMap.remove(channel.id);
     }
@@ -474,7 +499,7 @@ class Connection extends Emitter {
    * @param reason error reason
    * @param code error code
    */
-  public function closeWithError(reason:String, code:Int):Void {
+  @:dox(hide) @:noCompletion public function closeWithError(reason:String, code:Int):Void {
     this.emit(EVENT_ERROR, reason);
     this.close(reason, code);
   }
@@ -485,7 +510,7 @@ class Connection extends Emitter {
    * @param method method to send
    * @param fields fields with data for method
    */
-  public function sendMethod(channel:Int, method:Int, fields:Dynamic):Void {
+  @:dox(hide) @:noCompletion public function sendMethod(channel:Int, method:Int, fields:Dynamic):Void {
     // encode method
     var frame:Bytes = EncoderDecoderInfo.encodeMethod(method, channel, fields);
     // just send it
@@ -502,7 +527,7 @@ class Connection extends Emitter {
    * @param content content to send
    * @return written bytes
    */
-  public function sendMessage(channel:Int, method:Int, methodFields:Dynamic, property:Int, propertyFields:Dynamic, content:Bytes):Int {
+  @:dox(hide) @:noCompletion public function sendMessage(channel:Int, method:Int, methodFields:Dynamic, property:Int, propertyFields:Dynamic, content:Bytes):Int {
     // encode method and properties
     var mframe:Bytes = EncoderDecoderInfo.encodeMethod(method, channel, methodFields);
     var pframe:Bytes = EncoderDecoderInfo.encodeProperties(property, channel, content.length, propertyFields);
@@ -580,7 +605,7 @@ class Connection extends Emitter {
    * Shutdown everything
    * @param reason reason used for shutting down
    */
-  public function shutdown(reason:String = "shutdown"):Void {
+  @:dox(hide) @:noCompletion public function shutdown(reason:String = "shutdown"):Void {
     // shutdown all channels
     for (i in this.channelMap) {
       i.shutdown();
@@ -589,6 +614,8 @@ class Connection extends Emitter {
     this.channelMap = new Map<Int, Channel>();
     // set close flag
     this.closed = true;
+    // stop main event
+    this.mainEvent?.stop();
     // stop heartbeater
     this.stopHeartbeat();
     // finally close socket

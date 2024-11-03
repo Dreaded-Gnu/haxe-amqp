@@ -1,12 +1,13 @@
 package amqp;
 
+import haxe.Exception;
 import haxe.Int64;
+import haxe.io.Encoding;
+import emitter.signals.Emitter;
+import promises.Promise;
 import amqp.helper.BytesOutput;
 import amqp.message.Message;
-import haxe.io.Encoding;
 import amqp.helper.Bytes;
-import haxe.Exception;
-import emitter.signals.Emitter;
 import amqp.helper.protocol.Constant;
 import amqp.helper.protocol.EncoderDecoderInfo;
 import amqp.channel.type.ChannelState;
@@ -153,7 +154,7 @@ class Channel extends Emitter {
    * Force a connection state of the channel
    * @param state state to be enforced for this channeö
    */
-  public function forceConnectionState(state:ChannelState):Void {
+  @:dox(hide) @:noCompletion public function forceConnectionState(state:ChannelState):Void {
     this.state = state;
   }
 
@@ -162,7 +163,7 @@ class Channel extends Emitter {
    * @param method expected method to be set
    * @param callback expected callback for method to be set
    */
-  public function setExpected(method:Int, callback:(Dynamic) -> Void):Void {
+  @:dox(hide) @:noCompletion public function setExpected(method:Int, callback:(Dynamic) -> Void):Void {
     if (null == callback) {
       throw new Exception('Callback for set expected is null!');
     }
@@ -174,7 +175,7 @@ class Channel extends Emitter {
    * Basic accept method
    * @param frame received decoded frame
    */
-  public function accept(frame:Dynamic):Void {
+  @:dox(hide) @:noCompletion public function accept(frame:Dynamic):Void {
     // check for closed
     if (this.state == ChannelStateClosed) {
       this.connection.closeWithError('Channel which is about to receive data is in closed state', Constant.UNEXPECTED_FRAME);
@@ -187,8 +188,8 @@ class Channel extends Emitter {
       this.validateExpectedFrame(expected, frame);
       // run expected callback if set
       if (callback != null) {
-        // execute callback
-        callback(frame);
+        // queue callback for execution
+        this.connection.queueCallback(callback, frame);
       }
     } catch (e:Exception) {
       // when exception occurs we got a mismatch
@@ -281,54 +282,58 @@ class Channel extends Emitter {
 
   /**
    * Method to open the channel
-   * @param callback callback executed once channel is opened
+   * @return Channel promise resolving to channel
    */
-  public function open(callback:(Channel) -> Void):Void {
-    // set channel state
-    this.state = ChannelStateInit;
-    // send channel open
-    this.sendOrEnqueue(EncoderDecoderInfo.ChannelOpen, {outOfBand: ""}, EncoderDecoderInfo.ChannelOpenOk, (frame:Dynamic) -> {
-      // set state to open
-      this.state = ChannelStateOpen;
-      // call callback
-      callback(this);
+  public function open():Promise<Channel> {
+    return new Promise<Channel>((resolve:Channel->Void, reject:Any->Void) -> {
+      // set channel state
+      this.state = ChannelStateInit;
+      // send channel open
+      this.sendOrEnqueue(EncoderDecoderInfo.ChannelOpen, {outOfBand: ""}, EncoderDecoderInfo.ChannelOpenOk, (frame:Dynamic) -> {
+        // set state to open
+        this.state = ChannelStateOpen;
+        // call callback
+        resolve(this);
+      });
     });
   }
 
   /**
    * Close channel
-   * @param callback callback to be executed once channel is closed
+   * @returns Boolean promise resolving to true
    */
-  public function close(callback:() -> Void):Void {
-    // handle state closed by executing the callback immediately
-    if (this.state == ChannelStateClosed) {
-      callback();
-      return;
-    }
-    // send or enqueue
-    this.sendOrEnqueue(EncoderDecoderInfo.ChannelClose, {
-      replyText: 'Goodbye',
-      replyCode: Constant.REPLY_SUCCESS,
-      methodId: 0,
-      classId: 0,
-    }, EncoderDecoderInfo.ChannelCloseOk, (frame:Dynamic) -> {
-      // set state to closed
-      this.state = ChannelStateClosed;
-      // remove consumer
-      this.consumer.clear();
-      // remove channel from connection
-      this.connection.channelCleanup(this);
-      // execute callback
-      callback();
+  public function close():Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      // handle state closed by executing the callback immediately
+      if (this.state == ChannelStateClosed) {
+        reject("channel already closed!");
+        return;
+      }
+      // send or enqueue
+      this.sendOrEnqueue(EncoderDecoderInfo.ChannelClose, {
+        replyText: 'Goodbye',
+        replyCode: Constant.REPLY_SUCCESS,
+        methodId: 0,
+        classId: 0,
+      }, EncoderDecoderInfo.ChannelCloseOk, (frame:Dynamic) -> {
+        // set state to closed
+        this.state = ChannelStateClosed;
+        // remove consumer
+        this.consumer.clear();
+        // remove channel from connection
+        this.connection.channelCleanup(this);
+        // execute callback
+        resolve(true);
+      });
     });
   }
 
   /**
    * Method to declare a queue
    * @param config declare queue configuration
-   * @param callback callback executed once queue is declared
+   * @returns Promise with dynamic data
    */
-  public function declareQueue(config:Queue, callback:(data:Dynamic) -> Void):Void {
+  public function declareQueue(config:Queue):Promise<Dynamic> {
     // build arguments dynamic
     var arg:Dynamic = {};
     if (Reflect.hasField(config.arguments, "expires")) {
@@ -366,31 +371,36 @@ class Channel extends Emitter {
       ticket: config.ticket,
       nowait: config.nowait,
     };
-
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueDeclare, fields, EncoderDecoderInfo.QueueDeclareOk, (frame:Dynamic) -> {
-      callback(frame);
+    return new Promise<Dynamic>((resolve:Dynamic->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.QueueDeclare, fields, EncoderDecoderInfo.QueueDeclareOk, (frame:Dynamic) -> {
+        resolve(frame);
+      });
     });
   }
 
   /**
    * Bind queue
    * @param options bind queue options
-   * @param callback callback executed once bind queue was successful
+   * @returns Boolean promise resolving to true
    */
-  public function bindQueue(options:BindQueue, callback:() -> Void):Void {
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueBind, options, EncoderDecoderInfo.QueueBindOk, (frame:Dynamic) -> {
-      callback();
+  public function bindQueue(options:BindQueue):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.QueueBind, options, EncoderDecoderInfo.QueueBindOk, (frame:Dynamic) -> {
+        resolve(true);
+      });
     });
   }
 
   /**
    * Unbind a queue
    * @param options unbind queue options
-   * @param callback callback executed once unbind queue was successful
+   * @returns Boolean promise resolving to true
    */
-  public function unbindQueue(options:UnbindQueue, callback:() -> Void):Void {
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueUnbind, options, EncoderDecoderInfo.QueueUnbindOk, (frame:Dynamic) -> {
-      callback();
+  public function unbindQueue(options:UnbindQueue):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.QueueUnbind, options, EncoderDecoderInfo.QueueUnbindOk, (frame:Dynamic) -> {
+        resolve(true);
+      });
     });
   }
 
@@ -398,9 +408,9 @@ class Channel extends Emitter {
    * Consume a queue
    * @param config consume queue configuration
    * @param consumeCallback callback to be bound for consuming the queue
-   * @param callback callback executed once consume queue was successful
+   * @returns String promise resolving to consumerTag
    */
-  public function consumeQueue(config:ConsumeQueue, consumeCallback:(Message) -> Void, callback:(String) -> Void):Void {
+  public function consumeQueue(config:ConsumeQueue, consumeCallback:(Message) -> Void):Promise<String> {
     // fill argument table
     var argt:Dynamic = {};
     if (Reflect.hasField(config, 'priority')) {
@@ -417,122 +427,133 @@ class Channel extends Emitter {
       exclusive: config.exclusive,
       nowait: config.nowait,
     };
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.BasicConsume, fields, EncoderDecoderInfo.BasicConsumeOk, (frame:Dynamic) -> {
-      // get bound callbacks
-      var a:Array<(Message) -> Void> = this.consumer.get(frame.fields.consumerTag);
-      // handle no callback existing
-      if (a == null) {
-        a = new Array<(Message) -> Void>();
-      }
-      // push back callback
-      a.push(consumeCallback);
-      // write back
-      this.consumer.set(frame.fields.consumerTag, a);
-      // execute normal callback
-      callback(frame.fields.consumerTag);
+    return new Promise<String>((resolve:String->Void, reject:Any->Void) -> {
+      // send method
+      this.sendOrEnqueue(EncoderDecoderInfo.BasicConsume, fields, EncoderDecoderInfo.BasicConsumeOk, (frame:Dynamic) -> {
+        // get bound callbacks
+        var a:Array<(Message) -> Void> = this.consumer.get(frame.fields.consumerTag);
+        // handle no callback existing
+        if (a == null) {
+          a = new Array<(Message) -> Void>();
+        }
+        // push back callback
+        a.push(consumeCallback);
+        // write back
+        this.consumer.set(frame.fields.consumerTag, a);
+        // execute normal callback
+        resolve(frame.fields.consumerTag);
+      });
     });
   }
 
   /**
    * Delete a queue
    * @param config delete queue config
-   * @param callback callback to be executed once deletion was successful
+   * @returns Int promise resolving to message count
    */
-  public function deleteQueue(config:DeleteQueue, callback:(messageCount:Int) -> Void):Void {
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.QueueDelete, config, EncoderDecoderInfo.QueueDeleteOk, (frame:Dynamic) -> {
-      callback(frame.fields.messageCount);
+  public function deleteQueue(config:DeleteQueue):Promise<Int> {
+    return new Promise<Int>((resolve:Int->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.QueueDelete, config, EncoderDecoderInfo.QueueDeleteOk, (frame:Dynamic) -> {
+        resolve(frame.fields.messageCount);
+      });
     });
   }
 
   /**
    * Purge a queue
    * @param config purge queue config
-   * @param callback callback to be executed once purge was successful
+   * @returns Int promise resolving to message count
    */
-  public function purgeQueue(config:PurgeQueue, callback:(messageCount:Int) -> Void):Void {
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.QueuePurge, config, EncoderDecoderInfo.QueuePurgeOk, (frame:Dynamic) -> {
-      callback(frame.fields.messageCount);
+  public function purgeQueue(config:PurgeQueue):Promise<Int> {
+    return new Promise<Int>((resolve:Int->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.QueuePurge, config, EncoderDecoderInfo.QueuePurgeOk, (frame:Dynamic) -> {
+        resolve(frame.fields.messageCount);
+      });
     });
   }
 
   /**
    * Cancel a consumer
    * @param config cancel consume config
-   * @param callback callback to be executed once cancel was successful
+   * @returns Boolean promise resolving to true
    */
-  public function cancel(config:Cancel, callback:() -> Void):Void {
-    this.sendOrEnqueue(EncoderDecoderInfo.BasicCancel, config, EncoderDecoderInfo.BasicCancelOk, (frame:Dynamic) -> {
-      // remove consumers
-      this.consumer.remove(config.consumerTag);
-      // execute callback
-      callback();
+  public function cancel(config:Cancel):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.BasicCancel, config, EncoderDecoderInfo.BasicCancelOk, (frame:Dynamic) -> {
+        // remove consumers
+        this.consumer.remove(config.consumerTag);
+        // execute callback
+        resolve(true);
+      });
     });
   }
 
   /**
    * Declare exchange
    * @param config declare exchange config
-   * @param callback callback to be executed when successfully done
+   * @returns Boolean promise resolving to true
    */
-  public function declareExchange(config:DeclareExchange, callback:() -> Void):Void {
-    // build arguments dynamic
-    var arg:Dynamic = {};
-    if (Reflect.hasField(config, 'alternateExchange')) {
-      Reflect.setField(arg, 'alternate-exchange', config.alternateExchange);
-    }
-    var fields:Dynamic = {
-      exchange: config.exchange,
-      ticket: config.ticket,
-      type: config.type,
-      passive: config.passive,
-      durable: config.durable,
-      autoDelete: config.autoDelete,
-      internal: config.internal,
-      nowait: config.nowait,
-      arguments: arg
-    };
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDeclare, fields, EncoderDecoderInfo.ExchangeDeclareOk, (frame:Dynamic) -> {
-      callback();
+  public function declareExchange(config:DeclareExchange):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      // build arguments dynamic
+      var arg:Dynamic = {};
+      if (Reflect.hasField(config, 'alternateExchange')) {
+        Reflect.setField(arg, 'alternate-exchange', config.alternateExchange);
+      }
+      var fields:Dynamic = {
+        exchange: config.exchange,
+        ticket: config.ticket,
+        type: config.type,
+        passive: config.passive,
+        durable: config.durable,
+        autoDelete: config.autoDelete,
+        internal: config.internal,
+        nowait: config.nowait,
+        arguments: arg
+      };
+      // send method
+      this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDeclare, fields, EncoderDecoderInfo.ExchangeDeclareOk, (frame:Dynamic) -> {
+        resolve(true);
+      });
     });
   }
 
   /**
    * Delete an exchange
    * @param config delete exchange config
-   * @param callback callback to be executed when successfully done
+   * @returns Boolean promise resolving to true
    */
-  public function deleteExchange(config:DeleteExchange, callback:() -> Void):Void {
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDelete, config, EncoderDecoderInfo.ExchangeDeleteOk, (frame:Dynamic) -> {
-      callback();
+  public function deleteExchange(config:DeleteExchange):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.ExchangeDelete, config, EncoderDecoderInfo.ExchangeDeleteOk, (frame:Dynamic) -> {
+        resolve(true);
+      });
     });
   }
 
   /**
    * Bind an exchange
    * @param config bind exchange config
-   * @param callback callback to be executed when successfully done
+   * @returns Boolean promise resolving to true
    */
-  public function bindExchange(config:BindExchange, callback:() -> Void):Void {
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeBind, config, EncoderDecoderInfo.ExchangeBindOk, (frame:Dynamic) -> {
-      callback();
+  public function bindExchange(config:BindExchange):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.ExchangeBind, config, EncoderDecoderInfo.ExchangeBindOk, (frame:Dynamic) -> {
+        resolve(true);
+      });
     });
   }
 
   /**
    * Unbind an exchange
    * @param config unbind exchange config
-   * @param callback callback to be executed when successfully done
+   * @returns Boolean promise resolving to true
    */
-  public function unbindExchange(config:UnbindExchange, callback:() -> Void):Void {
-    // send method
-    this.sendOrEnqueue(EncoderDecoderInfo.ExchangeUnbind, config, EncoderDecoderInfo.ExchangeUnbindOk, (frame:Dynamic) -> {
-      callback();
+  public function unbindExchange(config:UnbindExchange):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.ExchangeUnbind, config, EncoderDecoderInfo.ExchangeUnbindOk, (frame:Dynamic) -> {
+        resolve(true);
+      });
     });
   }
 
@@ -589,11 +610,13 @@ class Channel extends Emitter {
   /**
    * Basic QOS
    * @param config QOS config
-   * @param callback callback to be executed when successfully done
+   * @returns Boolean promise resolving to true
    */
-  public function basicQos(option:BasicQos, callback:() -> Void):Void {
-    this.sendOrEnqueue(EncoderDecoderInfo.BasicQos, option, EncoderDecoderInfo.BasicQosOk, (frame:Dynamic) -> {
-      callback();
+  public function basicQos(option:BasicQos):Promise<Bool> {
+    return new Promise<Bool>((resolve:Bool->Void, reject:Any->Void) -> {
+      this.sendOrEnqueue(EncoderDecoderInfo.BasicQos, option, EncoderDecoderInfo.BasicQosOk, (frame:Dynamic) -> {
+        resolve(true);
+      });
     });
   }
 
@@ -660,7 +683,7 @@ class Channel extends Emitter {
   /**
    * Shutdown method
    */
-  public function shutdown():Void {
+  @:dox(hide) @:noCompletion public function shutdown():Void {
     this.expectedCallback = [];
     this.expectedFrame = [];
     this.outgoingMessageBuffer = [];

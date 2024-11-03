@@ -29,34 +29,36 @@ class Close2 {
     });
     trace("connect!");
     // connect to amqp
-    conn.connect(() -> {
-      trace("create channel!");
-      // create channel
-      channel = conn.channel((channel:Channel) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        trace("create channel!");
+        // create channel
+        return connection.channel();
+      })
+      .then((channel:Channel) -> {
         trace("declare queue!");
         // declare queue
-        channel.declareQueue({queue: QUEUE,}, (frame:Dynamic) -> {
+        return channel.declareQueue({queue: QUEUE,}).then((frame:Dynamic) -> {
           trace("consume queue!");
           trace(frame);
           // consume queue
-          channel.consumeQueue({queue: QUEUE}, (message:Message) -> {}, (id:String) -> {
+          return channel.consumeQueue({queue: QUEUE}, (message:Message) -> {}).then((id:String) -> {
             trace("cancel!");
-            channel.cancel({consumerTag: id}, () -> {});
-            trace("delete queue!");
-            // delete queue again
-            channel.deleteQueue({queue: QUEUE}, (messageCount:Int) -> {});
-            trace("close channel!");
-            // close channel
-            channel.close(() -> {
-              trace("close connection!");
-              // close connection
-              conn.close();
+            return channel.cancel({consumerTag: id}).then((cancelStatus:Bool) -> {
+              trace("delete queue!");
+              // delete queue again
+              return channel.deleteQueue({queue: QUEUE,}).then((messageCount:Int) -> {
+                trace("close channel!");
+                return channel.close();
+              });
             });
           });
         });
+      })
+      .then((channelCloseState:Bool) -> {
+        trace("close connection!");
+        // close connection
+        conn.close();
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

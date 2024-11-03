@@ -1,5 +1,8 @@
 package tutorial.routing;
 
+using thenshim.PromiseTools;
+
+import promises.Promise;
 import amqp.message.Message;
 import amqp.Channel;
 import amqp.Connection;
@@ -29,26 +32,32 @@ class ReceiveLog {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
-      // create channel
-      var channel:Channel = conn.channel((channel:Channel) -> {
-        // declare queue
-        channel.declareExchange({exchange: 'direct_logs', type: 'direct'}, () -> {
-          channel.declareQueue({queue: '', exclusive: true,}, (data:Dynamic) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        // create channel
+        return connection.channel();
+      })
+      .then((channel:Channel) -> {
+        // declare exchange
+        return channel.declareExchange({exchange: 'direct_logs', type: 'direct',}).then((declareStatus:Bool) -> {
+          return channel.declareQueue({queue: '', exclusive: true,}).then((data:Dynamic) -> {
             // bind severities
+            var promise:Array<Promise<Bool>> = new Array<Promise<Bool>>();
             for (severity in severities) {
-              channel.bindQueue({exchange: 'direct_logs', queue: data.fields.queue, routingKey: severity,}, () -> {});
+              promise.push(channel.bindQueue({exchange: 'direct_logs', queue: data.fields.queue, routingKey: severity,}));
             }
-            // consume queue
-            trace('[*] Waiting for logs. To exit press CTRL+C');
-            channel.consumeQueue({queue: data.fields.queue, noAck: true,}, (msg:Message) -> {
-              trace('[x] ${msg.fields.routingKey} ${msg.content.toString()}');
-            }, (consumerTag:String) -> {});
+            // return promise all
+            return promise.all().then((a:Array<Bool>) -> {
+              // consume queue
+              return channel.consumeQueue({queue: data.fields.queue, noAck: true,}, (msg:Message) -> {
+                trace('[x] ${msg.fields.routingKey} ${msg.content.toString()}');
+              });
+            });
           });
         });
+      })
+      .then((consumerTag:String) -> {
+        trace('[*] Waiting for logs on ${consumerTag}. To exit press CTRL+C');
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

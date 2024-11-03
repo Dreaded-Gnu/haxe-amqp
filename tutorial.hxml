@@ -3,6 +3,7 @@
 -lib Emitter
 # following is only necessary for vscode
 -lib uuid
+-lib promises
 --define HXCPP_CHECK_POINTER
 --define HXCPP_STACK_VARS
 --define HXCPP_STACK_LINE

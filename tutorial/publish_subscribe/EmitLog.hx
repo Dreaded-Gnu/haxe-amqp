@@ -30,24 +30,25 @@ class EmitLog {
       trace(event);
     });
     // connect to amqp
-    conn.connect(() -> {
-      // create channel
-      var channel:Channel = conn.channel((channel:Channel) -> {
+    conn.connect()
+      .then((connection:Connection) -> {
+        // create channel
+        return connection.channel();
+      })
+      .then((channel:Channel) -> {
         // declare queue
-        channel.declareExchange({exchange: 'logs', type: 'fanout'}, () -> {
+        return channel.declareExchange({exchange: 'logs', type: 'fanout'}).then((declareStatus:Bool) -> {
           // publish a message
           channel.basicPublish('logs', '', Bytes.ofString(message, Encoding.UTF8), {persistant: true,});
           trace(' [x] Sent ${message}');
           // close channel
-          channel.close(() -> {
-            trace("closing connection after channel was closed!");
-            // close connection finally
-            conn.close();
-          });
+          return channel.close();
         });
+      })
+      .then((closeState:Bool) -> {
+        trace("closing connection after channel was closed!");
+        // close connection finally
+        conn.close();
       });
-    }, () -> {
-      trace('failed to connect');
-    });
   }
 }

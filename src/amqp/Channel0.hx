@@ -1,5 +1,7 @@
 package amqp;
 
+import haxe.Exception;
+import promises.Promise;
 import amqp.channel.type.Cancel;
 import amqp.channel.type.BasicQos;
 import amqp.channel.type.BasicPublish;
@@ -15,7 +17,6 @@ import amqp.channel.type.ConsumeQueue;
 import amqp.channel.type.UnbindQueue;
 import amqp.channel.type.BindQueue;
 import amqp.channel.type.Queue;
-import haxe.Exception;
 import amqp.helper.protocol.Constant;
 import amqp.helper.protocol.EncoderDecoderInfo;
 import amqp.Channel;
@@ -23,7 +24,7 @@ import amqp.Channel;
 /**
  * Internal implementation for control channel
  */
-class Channel0 extends Channel {
+@:dox(hide) class Channel0 extends Channel {
   /**
    * Basic accept method
    * @param frame received decoded frame
@@ -73,49 +74,44 @@ class Channel0 extends Channel {
 
   /**
    * Method to open the channel
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function open(callback:(Channel) -> Void):Void {
+  override public function open():Promise<Channel> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Close channel
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function close(callback:() -> Void):Void {
+  override public function close():Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Method to declare a queue
    * @param config declare queue config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function declareQueue(config:Queue, callback:(data:Dynamic) -> Void):Void {
+  override public function declareQueue(config:Queue):Promise<Dynamic> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Bind queue
    * @param options bind queue config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function bindQueue(options:BindQueue, callback:() -> Void):Void {
+  override public function bindQueue(options:BindQueue):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Unbind a queue
    * @param options unbind queue config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function unbindQueue(options:UnbindQueue, callback:() -> Void):Void {
+  override public function unbindQueue(options:UnbindQueue):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
@@ -123,80 +119,72 @@ class Channel0 extends Channel {
    * Consume a queue
    * @param config consume queue config
    * @param consumeCallback consume callback
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function consumeQueue(config:ConsumeQueue, consumeCallback:(Message) -> Void, callback:(String) -> Void):Void {
+  override public function consumeQueue(config:ConsumeQueue, consumeCallback:(Message) -> Void):Promise<String> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Delete a queue
    * @param config delete queue config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function deleteQueue(config:DeleteQueue, callback:(messageCount:Int) -> Void):Void {
+  override public function deleteQueue(config:DeleteQueue):Promise<Int> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Purge a queue
    * @param config purge queue config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function purgeQueue(config:PurgeQueue, callback:(messageCount:Int) -> Void):Void {
+  override public function purgeQueue(config:PurgeQueue):Promise<Int> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Cancel a consumer
    * @param config cancel consumer config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function cancel(config:Cancel, callback:() -> Void):Void {
+  override public function cancel(config:Cancel):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Declare exchange
    * @param config declare exchange config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function declareExchange(config:DeclareExchange, callback:() -> Void):Void {
+  override public function declareExchange(config:DeclareExchange):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Delete an exchange
    * @param config delete exchange config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function deleteExchange(config:DeleteExchange, callback:() -> Void):Void {
+  override public function deleteExchange(config:DeleteExchange):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Bind an exchange
    * @param config bind exchange config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function bindExchange(config:BindExchange, callback:() -> Void):Void {
+  override public function bindExchange(config:BindExchange):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
   /**
    * Unbind an exchange
    * @param config unbind exchange config
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function unbindExchange(config:UnbindExchange, callback:() -> Void):Void {
+  override public function unbindExchange(config:UnbindExchange):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
@@ -215,10 +203,9 @@ class Channel0 extends Channel {
   /**
    * Basic QOS
    * @param option basic qos options
-   * @param callback callback to be executed once done
    * @throws Exception Throws generally an exception since function is not supported on control channel
    */
-  override public function basicQos(option:BasicQos, callback:() -> Void):Void {
+  override public function basicQos(option:BasicQos):Promise<Bool> {
     throw new Exception("Unsupported on channel 0");
   }
 
