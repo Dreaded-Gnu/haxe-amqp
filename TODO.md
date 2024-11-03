@@ -1,4 +1,5 @@
 # ToDo
 
 - [ ] Implement disconnect handling detection sending lot of zeros
-- [ ] Replace callback handling by promise like structure
+- [ ] Tutorials sometimes hang instead of exiting
+- [x] Replace callback handling by promise like structure
