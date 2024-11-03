@@ -62,7 +62,7 @@ class Connection extends Emitter {
   private var heartbeat:Int;
   private var heartbeater:Heartbeat;
   private var nextChannelId:Int;
-  private var queuedCallback:Array<(Dynamic)->Void>;
+  private var queuedCallback:Array<(Dynamic) -> Void>;
   private var queuedCallbackData:Array<Dynamic>;
   private var mainEvent:MainEvent;
 
@@ -81,7 +81,7 @@ class Connection extends Emitter {
     this.writeMutex = new Mutex();
     this.sentSinceLastCheck = false;
     this.receivedSinceLastCheck = false;
-    this.queuedCallback = new Array<(Dynamic)->Void>();
+    this.queuedCallback = new Array<(Dynamic) -> Void>();
     this.queuedCallbackData = new Array<Dynamic>();
     this.mainEvent = null;
   }
@@ -326,7 +326,7 @@ class Connection extends Emitter {
    * @param callback
    * @param data
    */
-  @:dox(hide) @:noCompletion public function queueCallback(callback:(Dynamic)->Void, data:Dynamic):Void {
+  @:dox(hide) @:noCompletion public function queueCallback(callback:(Dynamic) -> Void, data:Dynamic):Void {
     this.queuedCallbackData.push(data);
     this.queuedCallback.push(callback);
   }
@@ -393,7 +393,7 @@ class Connection extends Emitter {
         this.mainEvent = MainLoop.add(() -> {
           while (this.queuedCallback.length > 0) {
             // get callback and frame
-            var callback:(Dynamic)->Void = this.queuedCallback.shift();
+            var callback:(Dynamic) -> Void = this.queuedCallback.shift();
             var frame:Dynamic = this.queuedCallbackData.shift();
             // execute it
             callback(frame);
@@ -527,7 +527,8 @@ class Connection extends Emitter {
    * @param content content to send
    * @return written bytes
    */
-  @:dox(hide) @:noCompletion public function sendMessage(channel:Int, method:Int, methodFields:Dynamic, property:Int, propertyFields:Dynamic, content:Bytes):Int {
+  @:dox(hide) @:noCompletion public function sendMessage(channel:Int, method:Int, methodFields:Dynamic, property:Int, propertyFields:Dynamic,
+      content:Bytes):Int {
     // encode method and properties
     var mframe:Bytes = EncoderDecoderInfo.encodeMethod(method, channel, methodFields);
     var pframe:Bytes = EncoderDecoderInfo.encodeProperties(property, channel, content.length, propertyFields);
