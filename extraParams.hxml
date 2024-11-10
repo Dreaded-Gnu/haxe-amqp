@@ -1,2 +1,3 @@
-
---class-path src/promises/src
+--library Emitter
+--library format
+--library promises

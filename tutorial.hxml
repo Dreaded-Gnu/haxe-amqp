@@ -1,91 +1,91 @@
 
---class-path src/promises/src
 --class-path src
--lib format
--lib Emitter
+--library format
+--library Emitter
+--library promises
 # following is only necessary for vscode
--lib uuid
+--library uuid
 --define HXCPP_CHECK_POINTER
 --define HXCPP_STACK_VARS
 --define HXCPP_STACK_LINE
 --define HXCPP_STACK_TRACE
 --each
 
--cp tutorial/hello_world
+--class-path tutorial/hello_world
 -main tutorial.hello_world.Sender
 -cpp tutorial/hello_world/sender
 --next
 
--cp tutorial/hello_world
+--class-path tutorial/hello_world
 -main tutorial.hello_world.Receiver
 -cpp tutorial/hello_world/receiver
 --next
 
--cp tutorial/work_queues
+--class-path tutorial/work_queues
 -main tutorial.work_queues.NewTask
 -cpp tutorial/work_queues/newtask
 --next
 
--cp tutorial/work_queues
+--class-path tutorial/work_queues
 -main tutorial.work_queues.Worker
 -cpp tutorial/work_queues/worker
 --next
 
--cp tutorial/publish_subscribe
+--class-path tutorial/publish_subscribe
 -main tutorial.publish_subscribe.EmitLog
 -cpp tutorial/publish_subscribe/emitlog
 --next
 
--cp tutorial/publish_subscribe
+--class-path tutorial/publish_subscribe
 -main tutorial.publish_subscribe.ReceiveLog
 -cpp tutorial/publish_subscribe/receivelog
 --next
 
--cp tutorial/routing
+--class-path tutorial/routing
 -main tutorial.routing.EmitLog
 -cpp tutorial/routing/emitlog
 --next
 
--cp tutorial/routing
+--class-path tutorial/routing
 -main tutorial.routing.ReceiveLog
 -cpp tutorial/routing/receivelog
 --next
 
--cp tutorial/topic
+--class-path tutorial/topic
 -main tutorial.topic.EmitLog
 -cpp tutorial/topic/emitlog
 --next
 
--cp tutorial/topic
+--class-path tutorial/topic
 -main tutorial.topic.ReceiveLog
 -cpp tutorial/topic/receivelog
 --next
 
--cp tutorial/rpc
+--class-path tutorial/rpc
 -main tutorial.rpc.Server
 -cpp tutorial/rpc/server
 --next
 
--cp tutorial/rpc
+--class-path tutorial/rpc
 -main tutorial.rpc.Client
 -cpp tutorial/rpc/client
 --next
 
--cp tutorial/ssl
+--class-path tutorial/ssl
 -main tutorial.ssl.Sender
 -cpp tutorial/ssl/sender
 --next
 
--cp tutorial/ssl
+--class-path tutorial/ssl
 -main tutorial.ssl.Receiver
 -cpp tutorial/ssl/receiver
 --next
 
--cp tutorial/close_queue
+--class-path tutorial/close_queue
 -main tutorial.close_queue.Close
 -cpp tutorial/close_queue/close_queue
 --next
 
--cp tutorial/close_queue
+--class-path tutorial/close_queue
 -main tutorial.close_queue.Close2
 -cpp tutorial/close_queue/close_queue2
