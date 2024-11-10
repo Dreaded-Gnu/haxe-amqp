@@ -22,6 +22,7 @@
   },
   "excludes": [
     "src/amqp/helper/protocol/Constant.hx",
-    "src/amqp/helper/protocol/EncoderDecoderInfo.hx"
+    "src/amqp/helper/protocol/EncoderDecoderInfo.hx",
+    "src/promises"
   ]
 }
