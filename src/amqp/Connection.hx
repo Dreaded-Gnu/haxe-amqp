@@ -391,7 +391,7 @@ class Connection extends Emitter {
           }
         });
         this.mainEvent = MainLoop.add(() -> {
-          while (this.queuedCallback.length > 0) {
+          if (this.queuedCallback.length > 0) {
             // get callback and frame
             var callback:(Dynamic) -> Void = this.queuedCallback.shift();
             var frame:Dynamic = this.queuedCallbackData.shift();
