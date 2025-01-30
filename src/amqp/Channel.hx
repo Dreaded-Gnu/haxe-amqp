@@ -237,6 +237,9 @@ class Channel extends Emitter {
               for (callback in callbacks) {
                 callback(incomingMessage);
               }
+            } else {
+              // no callback means not acknowledge with requeue
+              this.nack(incomingMessage, false, true);
             }
             // reset incoming message and flush out buffer
             incomingMessage = null;
