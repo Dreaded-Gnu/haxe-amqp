@@ -7,7 +7,7 @@ class AmqpSrc {
   public static function apply() {
     for (cp in Context.getClassPath()) {
       var path:String = FileSystem.absolutePath(cp);
-      var index:Int = path.indexOf('haxe-amqp');
+      var index:Int = path.indexOf('amqp');
       var index2:Int = path.indexOf('macro-src');
       if (index != -1 && index2 != -1) {
         Compiler.addClassPath(path.substr(0, index2) + 'src');
