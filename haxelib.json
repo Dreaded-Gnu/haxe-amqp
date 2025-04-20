@@ -1,12 +1,12 @@
 {
-  "name": "haxe-amqp",
+  "name": "amqp",
   "url": "https://github.com/Dreaded-Gnu/haxe-amqp",
   "license": "MIT",
   "tags": [
     "amqp",
     "rabbitmq"
   ],
-  "description": "haxe-amqp is a library, which allows to use amqp 0.9.1 for connecting e.g. to rabbitmq.",
+  "description": "amqp is a library, which allows to use amqp 0.9.1 for connecting e.g. to rabbitmq.",
   "version": "0.1.0",
   "releasenote": "Initial release",
   "contributors": [
