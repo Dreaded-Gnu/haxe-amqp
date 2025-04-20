@@ -66,6 +66,16 @@ class Config {
   public var locale(default, set):String = 'en_US';
 
   /**
+   * Frame max size
+   */
+  public var frameMax(default, default):Int = 131072;
+
+  /**
+   * Channel max
+   */
+  public var channelMax(default, default):Int = 0;
+
+  /**
    * Socket read timeout
    */
   public var readTimeout(default, set):Float = 3.0;

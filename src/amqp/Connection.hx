@@ -123,8 +123,8 @@ class Connection extends Emitter {
 
       // tune-ok
       tuneOk: {
-        channelMax: 0,
-        frameMax: 0x1000,
+        channelMax: this.config.channelMax,
+        frameMax: this.config.frameMax,
         heartbeat: this.config.heartbeat,
       },
 
