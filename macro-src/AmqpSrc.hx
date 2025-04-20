@@ -1,5 +1,4 @@
 #if macro
-
 import haxe.macro.Compiler;
 import haxe.macro.Context;
 import sys.FileSystem;
@@ -18,5 +17,4 @@ class AmqpSrc {
     }
   }
 }
-
 #end

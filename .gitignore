@@ -20,3 +20,4 @@ spec/*.json
 docs
 bin
 cert
+*.js
