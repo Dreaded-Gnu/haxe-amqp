@@ -21,7 +21,7 @@ class AmqpSrc {
         // Add amqp class path
         Compiler.addClassPath(Path.join([path.substr(0, index2), 'src',]));
         // add promises submodule to class path
-        Compiler.addClassPath(Path.join([path.substr(0, index2), 'src','promises','src',]));
+        Compiler.addClassPath(Path.join([path.substr(0, index2), 'src', 'promises', 'src',]));
         // stop the loop
         break;
       }
