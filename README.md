@@ -14,7 +14,7 @@ haxe --run GenerateDefinition.hx amqp-rabbitmq-0.9.1.json
 Using amqp source install.
 
 ```bash
-haxelib git amqp https://github.com/Dreaded-Gnu/openfl-tiled
+haxelib git amqp https://github.com/Dreaded-Gnu/haxe-amqp
 ```
 
 Using amqp normal install
