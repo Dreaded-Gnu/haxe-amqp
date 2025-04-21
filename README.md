@@ -1,4 +1,4 @@
-# haxe-amqp
+# amqp
 
 Implementation of amqp 0.9.1 library for haxe.
 
@@ -11,10 +11,16 @@ haxe --run GenerateDefinition.hx amqp-rabbitmq-0.9.1.json
 
 ## installation
 
-haxe-amqp is currently not published to haxelib, so to install you've to use git install.
+Using amqp source install.
 
 ```bash
-haxelib git haxe-amqp https://github.com/Dreaded-Gnu/haxe-amqp
+haxelib git amqp https://github.com/Dreaded-Gnu/openfl-tiled
+```
+
+Using amqp normal install
+
+```bash
+haxelib install amqp
 ```
 
 This project relies heavily on [promises](https://github.com/core-haxe/promises) which is linked as submodule and applied to class path via macro set as haxelib src.

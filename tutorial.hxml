@@ -1,5 +1,7 @@
 
---class-path src
+--class-path macro-src
+--macro AmqpSrc.apply()
+
 --library format
 --library Emitter
 --library promises
