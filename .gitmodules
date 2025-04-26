@@ -1,3 +1,3 @@
-[submodule "src/promises"]
-	path = src/promises
+[submodule "thirdparty/promises"]
+	path = thirdparty/promises
 	url = https://github.com/core-haxe/promises.git

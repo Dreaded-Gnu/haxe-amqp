@@ -1,5 +1,5 @@
 
---class-path macro-src
+--class-path src
 --macro AmqpSrc.apply()
 
 --library format

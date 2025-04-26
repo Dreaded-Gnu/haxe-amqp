@@ -3,5 +3,4 @@
 script=$(readlink -f "$0")
 path=$(dirname "$script")
 
-haxelib run formatter -s $path/src/amqp/
-haxelib run formatter -s $path/macro-src/
+haxelib run formatter -s $path/src

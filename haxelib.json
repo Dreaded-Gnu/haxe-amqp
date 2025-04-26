@@ -12,7 +12,7 @@
   "contributors": [
     "DreadedGnu"
   ],
-  "classPath": "macro-src",
+  "classPath": "src",
   "dependencies": {
     "format": "",
     "Emitter": ""
