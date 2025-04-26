@@ -1,7 +1,0 @@
--cp src
--lib format
--lib hxdispatch
-# following is only necessary for vscode
--lib utest
--cp tutorial/work_queues
--main tutorial.work_queues.NewTask

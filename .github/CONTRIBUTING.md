@@ -25,11 +25,10 @@ To setup for making changes you'll need to take a few steps, we've outlined belo
 3. Run `haxelib newrepo`
 4. Run `haxelib install format`
 5. Run `haxelib install Emitter`
-6. Run `haxelib git promises https://github.com/core-haxe/promises`
-7. Run `haxelib install formatter`
-8. Run `haxelib install hxcpp`
-9. Run `haxelib install uuid`
-10. Run `haxelib install dox`
+6. Run `haxelib install formatter`
+7. Run `haxelib install hxcpp`
+8. Run `haxelib install uuid`
+9. Run `haxelib install dox`
 
 Libraries `format`, `Emitter` and `promises` are general dependencies for this library. `formatter` will become necessary when it comes to code formatting. `hxcpp` and `uuid` are necessary since all tutorials are compiled to cpp and rpc tutorial uses uuid. `dox` becomes necessary when generating the documentation.
 

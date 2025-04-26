@@ -4,13 +4,13 @@
 
 --library format
 --library Emitter
---library promises
-# following is only necessary for vscode
 --library uuid
 --define HXCPP_CHECK_POINTER
 --define HXCPP_STACK_VARS
 --define HXCPP_STACK_LINE
 --define HXCPP_STACK_TRACE
+--define HXCPP_CATCH_SEGV
+--define HXCPP_CPP17
 --each
 
 --class-path tutorial/hello_world
