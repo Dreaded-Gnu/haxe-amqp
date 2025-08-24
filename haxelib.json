@@ -7,14 +7,14 @@
     "rabbitmq"
   ],
   "description": "amqp is a library, which allows to use amqp 0.9.1 for connecting e.g. to rabbitmq.",
-  "version": "0.1.0",
-  "releasenote": "Initial release",
+  "version": "0.1.1",
+  "releasenote": "Updated dependencies",
   "contributors": [
     "DreadedGnu"
   ],
   "classPath": "src",
   "dependencies": {
-    "format": "",
-    "Emitter": ""
+    "format": "3.8.0",
+    "Emitter": "1.0.0"
   }
 }

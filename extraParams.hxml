@@ -1,3 +1,3 @@
---library Emitter
+--library emitter
 --library format
 --macro AmqpSrc.apply()

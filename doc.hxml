@@ -4,7 +4,7 @@
 --no-output
 --xml bin/types.xml
 -lib format
--lib Emitter
+-lib emitter
 -lib promises
 --cpp bin/cpp
 --next

@@ -3,7 +3,7 @@ package amqp;
 import haxe.Exception;
 import haxe.Int64;
 import haxe.io.Encoding;
-import emitter.signals.Emitter;
+import emitter.Emitter;
 import promises.Promise;
 import amqp.helper.BytesOutput;
 import amqp.message.Message;

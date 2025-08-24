@@ -1,7 +1,7 @@
 package amqp;
 
 import haxe.Timer;
-import emitter.signals.Emitter;
+import emitter.Emitter;
 
 /**
  * Heartbeat implementation

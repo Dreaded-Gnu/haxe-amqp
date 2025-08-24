@@ -3,7 +3,7 @@
 --macro AmqpSrc.apply()
 
 --library format
---library Emitter
+--library emitter
 --library uuid
 --define HXCPP_CHECK_POINTER
 --define HXCPP_STACK_VARS

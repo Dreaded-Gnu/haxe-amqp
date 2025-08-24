@@ -4,7 +4,7 @@ import haxe.MainLoop;
 import haxe.Exception;
 import sys.net.Host;
 import sys.thread.Mutex;
-import emitter.signals.Emitter;
+import emitter.Emitter;
 import promises.Promise;
 import amqp.connection.Config;
 import amqp.connection.type.OpenFrame;
